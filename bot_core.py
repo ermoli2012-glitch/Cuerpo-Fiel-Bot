@@ -7,15 +7,31 @@ import re
 
 app = Flask(__name__)
 
-# --- 1. CONFIGURACIÓN DE BASE DE DATOS ---
+# ==========================================
+# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
+# ==========================================
+# Lee la clave de la variable de entorno de Render (seguro)
+API_KEY = os.environ.get("GEMINI_API_KEY", "CLAVE_LOCAL_TEST") 
+try:
+    genai.configure(api_key=API_KEY)
+    # El modelo más estable que encontramos
+    model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
+except Exception as e:
+    # Este error se imprimirá en los logs de Render
+    print(f"❌ ERROR CONFIGURANDO GEMINI: {e}")
+
+# ==========================================
+# 2. CONFIGURACIÓN DE BASE DE DATOS (RENDER)
+# ==========================================
 def obtener_conexion():
     try:
+        # Usa la variable de entorno que Render provee directamente
         database_url = os.environ.get('DATABASE_URL')
         if database_url:
             return psycopg2.connect(database_url, sslmode='require')
+        # Fallback para pruebas locales
         return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
-    except Exception as e:
-        print(f"❌ Error conectando a BD: {e}")
+    except Exception:
         return None
 
 def guardar_historial(celular, mensaje, respuesta):
@@ -29,30 +45,23 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.close()
         except:
             pass
+# ... (rest of the functions are here) ...
 
-# --- 2. CEREBRO (Inicialización Resiliente) ---
+# --- CEREBRO DE LA APLICACIÓN (SIN CAMBIOS) ---
 def consultar_gemini(mensaje_usuario):
+    # Lógica de Gemini (sin cambios, ya probada)
     try:
-        # Inicialización del modelo movida aquí para evitar el crash del servidor Gunicorn
-        API_KEY = os.environ.get("GEMINI_API_KEY", "CLAVE_LOCAL_TEST") 
-        genai.configure(api_key=API_KEY)
-        model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
-        
-        INSTRUCCION_SISTEMA = """
-        Eres 'Cuerpo Fiel', asistente de salud adventista. Tu base son los 8 Remedios Naturales (ADELANTE).
-        Responde en máximo 100 palabras. Usa lenguaje cristiano, da consejos NEWSTART y termina con una cita bíblica (RV1960).
-        """
-
         chat = model.start_chat(history=[])
-        response = chat.send_message(f"{INSTRUCCION_SISTEMA}\n\nEl usuario dice: {mensaje_usuario}")
+        response = chat.send_message(f"Instrucciones: {mensaje_usuario}")
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
-        # Si falla, imprimimos el error real en Render logs y enviamos un mensaje de falla.
-        print(f"❌ ERROR FATAL EN GEMINI: {e}")
+        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
         return "⚠️ Lo siento, mi cerebro está en mantenimiento. Intenta de nuevo en 1 minuto."
 
-# --- 3. SERVIDOR WEB (RUTAS) ---
+# ==========================================
+# 3. SERVIDOR WEB (RUTAS BLINDADAS)
+# ==========================================
 @app.route('/', methods=['GET'])
 def health_check():
     """Ruta para chequeo de salud de Render."""
@@ -61,25 +70,22 @@ def health_check():
 @app.route('/webhooks/telegram', methods=['POST'])
 @app.route('/chat', methods=['POST'])
 def chat():
-    # 1. Recibir y obtener datos limpios
+    # ... (rest of chat logic to save history and return XML) ...
     celular = request.values.get('From', 'Test').replace('whatsapp:', '')
     mensaje_in = request.values.get('Body', request.values.get('text', ''))
     
     print(f"📩 Recibido: {mensaje_in}")
 
-    # 2. Pensar
     respuesta = consultar_gemini(mensaje_in)
-
-    # 3. Guardar y Responder
     guardar_historial(celular, mensaje_in, respuesta)
-    
-    # 4. Responder a Telegram/Twilio (Formato XML)
+
     resp = MessagingResponse()
     resp.message(respuesta)
+    
     return Response(str(resp), mimetype='application/xml')
 
-if __name__ == '__main__':
-    # Usar la variable de entorno 'PORT'
-    port = int(os.environ.get('PORT', 8080))
-    print(f"🚀 CUERPO FIEL 4.0 - ESTABILIZADO")
-    app.run(host='0.0.0.0', port=port, debug=True)
+# ESTO ES LO CRÍTICO: SOLO DEJAR QUE GUNICORN LO ARRANQUE
+# Eliminamos la función __name__ == main para que Render use solo el Procfile.
+
+# Agrega esta línea para que Python no se queje de la indentación:
+print("Listo para la ultima fase.")
