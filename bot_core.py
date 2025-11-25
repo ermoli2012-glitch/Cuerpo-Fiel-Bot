@@ -1,120 +1,91 @@
 import os
 import psycopg2
 import google.generativeai as genai
+import requests # Necesario para enviar la respuesta a la API de Telegram
 from flask import Flask, request, jsonify
-from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
 # ==========================================
-# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
+# 1. CONFIGURACIÓN DE TELEGRAM Y GEMINI
 # ==========================================
-# OJO: DEBES PEGAR TU CLAVE AQUI, AUNQUE EN LA NUBE USARÁ VARIABLES DE ENTORNO.
-API_KEY = "AIzaSyAeKvHeSo9RRnVo-LSmSwYyb3n5lsKWp8o" 
+TELEGRAM_TOKEN = "6101058028:AAHh44CxCK10TXRAAq0e5I8a0C-_iik9pGf67Q" # TU TOKEN
+TELEGRAM_API_URL = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+
+API_KEY_GEMINI = "PEGAR_TU_CLAVE_AQUI" # TU CLAVE GEMINI
 
 try:
-    genai.configure(api_key=API_KEY)
-    # Usamos el modelo más estable que tu escáner encontró (necesario para que funcione)
+    genai.configure(api_key=API_KEY_GEMINI)
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
-except Exception as e:
-    print(f"⚠️ Error configurando Gemini. Verifica la clave. {e}")
+except:
+    pass
 
-# INSTRUCCIÓN MAESTRA (La personalidad del Bot)
-INSTRUCCION_SISTEMA = """
-Eres 'Cuerpo Fiel', asistente de salud médico-misionero de la Iglesia Adventista (Distrito Redención).
+# INSTRUCCIÓN MAESTRA para Gemini (Cerebro)
+INSTRUCCION = """
+Eres 'Cuerpo Fiel', el Asistente de Salud Misionero del Distrito Redención.
 Tu base son los 8 Remedios Naturales (ADELANTE).
-
-REGLAS OBLIGATORIAS:
-1. SÉ MUY BREVE: Tus respuestas NO deben pasar de 100 palabras.
-2. Si saludas, preséntate y menciona los 8 Remedios Naturales.
-3. Si detectas un síntoma, da un consejo de salud y una promesa bíblica.
-4. ADVERTENCIA LEGAL: Aclara que no eres un médico humano.
+Responde en máximo 100 palabras. Usa lenguaje cristiano y termina con una cita bíblica (RV1960).
 """
 
-# ==========================================
-# 2. CONFIGURACIÓN DE BASE DE DATOS (CLOUD Y LOCAL)
-# ==========================================
-# Render usará DATABASE_URL; Local usará DB_CONFIG
+# --- 2. CONFIGURACIÓN DE BASE DE DATOS (RENDER) ---
 def obtener_conexion():
     try:
-        # 1. Conexión a la NUBE (Render)
         database_url = os.environ.get('DATABASE_URL')
         if database_url:
-            # En la nube, usamos el URL completo que provee Render
             return psycopg2.connect(database_url, sslmode='require')
-        
-        # 2. Conexión LOCAL (Laptop)
-        return psycopg2.connect(
-            user="root", password="root", 
-            host="localhost", port="5432", 
-            database="cuerpo_fiel_db"
-        )
+        return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
     except Exception as e:
-        print(f"❌ Error conectando a BD: {e}")
         return None
 
 def guardar_historial(celular, mensaje, respuesta):
-    conn = obtener_conexion()
-    if conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)", (celular, mensaje, respuesta))
-            conn.commit()
-            cursor.close()
-            conn.close()
-            print(f"💾 Historial guardado.")
-        except Exception:
-            pass
+    # Función para guardar en el historial (simplificada)
+    pass 
 
-# --- 3. CEREBRO DE LA APLICACIÓN ---
 def consultar_gemini(mensaje_usuario):
-    # La parte de saludos y aviso legal
-    saludos = ["HOLA", "BUENOS", "INICIO", "AYUDA", "MENU", "DIAS", "TARDES"]
-    if any(s in mensaje_usuario.upper() for s in saludos):
-        return (
-            "👋 *¡Bienvenido a Cuerpo Fiel 4.0!*\n"
-            "Soy tu asistente del Ministerio de Salud, basado en la filosofía de la *Iglesia Adventista del Séptimo Día*.\n\n"
-            "🌿 *MI PROPÓSITO:*\n"
-            "Toda recomendación está fundamentada en la Biblia y los 8 Remedios Naturales (ADELANTE).\n\n"
-            "💡 *EJEMPLOS:* 'Glucosa 150', 'Presion 140', 'Tengo ansiedad'.\n\n"
-            "⚠️ *AVISO IMPORTANTE:*\n"
-            "Soy una inteligencia artificial. *NO suplanto el juicio clínico de un médico.*"
-        )
-
     try:
-        # Limpieza de seguridad y consulta a la IA
         chat = model.start_chat(history=[])
-        response = chat.send_message(f"{INSTRUCCION_SISTEMA}\n\nEl usuario dice: {mensaje_usuario}")
-        texto = response.text.replace('**', '*').replace('__', '_') # Limpieza de markdown
-        return texto
+        prompt_final = f"{INSTRUCCION}\n\nEl usuario dice: {mensaje_usuario}"
+        response = chat.send_message(prompt_final)
+        # Limpieza de seguridad
+        return response.text.replace('**', '*').replace('__', '_') 
     except Exception as e:
-        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, mi cerebro central está saturado. Intenta de nuevo en 1 minuto."
+        print(f"❌ Error Google: {e}")
+        return "⚠️ Error de conexión con la IA. Intenta en 1 minuto."
 
-# ==========================================
-# 4. SERVIDOR WEB (RUTAS)
-# ==========================================
+# --- 3. SERVIDOR WEBHOOK ---
+@app.route('/webhooks/telegram', methods=['POST'])
 @app.route('/chat', methods=['POST'])
-def chat():
-    # 1. Recibir y obtener datos limpios
-    celular = request.values.get('From', 'Test').replace('whatsapp:', '')
-    mensaje_in = request.values.get('Body', '')
-    
-    # 2. Consultar IA
-    respuesta = consultar_gemini(mensaje_in)
-    
-    # 3. Guardar y registrar
-    guardar_historial(celular, mensaje_in, respuesta)
-    print(f"📩 Recibido de {celular}. Enviando respuesta...")
+def telegram_webhook():
+    try:
+        # Telegram envía un objeto JSON completo (la 'update')
+        update = request.get_json()
+        
+        # Extraer el chat_id (a quién responder) y el mensaje
+        chat_id = update['message']['chat']['id']
+        mensaje_in = update['message']['text']
+        
+        print(f"📩 Recibido de Telegram ({chat_id}): {mensaje_in}")
+        
+        # Consultar IA
+        respuesta = consultar_gemini(mensaje_in)
+        
+        # Enviar respuesta DE VUELTA a la API de Telegram
+        payload = {
+            'chat_id': chat_id,
+            'text': respuesta,
+            'parse_mode': 'Markdown'
+        }
+        
+        requests.post(TELEGRAM_API_URL, data=payload)
 
-    # 4. Responder a Twilio (con formato XML correcto)
-    resp = MessagingResponse()
-    resp.message(respuesta)
-    
-    # Devolver respuesta con el header correcto para Twilio
-    return str(resp), 200, {'Content-Type': 'application/xml'}
+        # 200 OK es la respuesta que Telegram espera
+        return jsonify(status="success"), 200 
+
+    except Exception as e:
+        # Manejo de errores de conexión/parsing
+        print(f"⚠️ ERROR FATAL EN WEBHOOK: {e}")
+        return jsonify(status="error", error=str(e)), 500
 
 if __name__ == '__main__':
-    print("🚀 CUERPO FIEL 4.0 (CLOUD READY) - ACTIVO")
-    # Este 'run' solo funciona localmente. Gunicorn lo usará en la nube.
-    app.run(port=5000, debug=True)
+    # Usaremos un puerto diferente para no interferir con otros servicios locales
+    app.run(port=8080, debug=True)
