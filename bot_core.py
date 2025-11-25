@@ -1,4 +1,4 @@
-import os # <--- NECESARIO PARA LEER EL PUERTO DE RENDER
+import os
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, Response
@@ -10,14 +10,15 @@ app = Flask(__name__)
 # ==========================================
 # 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
 # ==========================================
-# OJO: DEBES PEGAR TU CLAVE AQUI, AUNQUE EN LA NUBE USARÁ VARIABLES DE ENTORNO.
-API_KEY = "8101058820:AAH04AcCXiQTXRAaqkDe5BaQC-_iHp9uG7o" 
+# Lee la clave de la variable de entorno de Render (o un placeholder si no existe)
+API_KEY = os.environ.get("GEMINI_API_KEY", "PEGAR_TU_CLAVE_AQUI") 
 
 try:
     genai.configure(api_key=API_KEY)
-    # Usamos el modelo estable que tu escáner encontró
+    # Usamos el modelo más estable que tu escáner encontró
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
 except Exception as e:
+    # Este error solo saldrá si la llave no es válida o no está configurada en Render
     print(f"⚠️ Error configurando Gemini: {e}")
 
 # INSTRUCCIÓN MAESTRA (La personalidad del Bot)
@@ -32,14 +33,8 @@ REGLAS OBLIGATORIAS:
 """
 
 # ==========================================
-# 2. CONFIGURACIÓN DE BASE DE DATOS
+# 2. CONFIGURACIÓN DE BASE DE DATOS (CLOUD Y LOCAL)
 # ==========================================
-DB_CONFIG = {
-    "user": "root", "password": "root", 
-    "host": "localhost", "port": "5432",
-    "database": "cuerpo_fiel_db"
-}
-
 def obtener_conexion():
     try:
         # 1. Conexión a la NUBE (Render)
@@ -48,7 +43,11 @@ def obtener_conexion():
             return psycopg2.connect(database_url, sslmode='require')
         
         # 2. Conexión LOCAL (Laptop)
-        return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
+        return psycopg2.connect(
+            user="root", password="root", 
+            host="localhost", port="5432", 
+            database="cuerpo_fiel_db"
+        )
     except Exception as e:
         print(f"❌ Error conectando a BD: {e}")
         return None
@@ -62,7 +61,8 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.commit()
             cursor.close()
             conn.close()
-        except:
+            print(f"💾 Historial guardado.")
+        except Exception:
             pass
 
 # ==========================================
@@ -73,50 +73,55 @@ def consultar_gemini(mensaje_usuario):
     mensaje_norm = mensaje_usuario.upper().replace('Á','A').replace('É','E').replace('Í','I').replace('Ó','O').replace('Ú','U')
     
     # Manejo de saludo simplificado
-    if any(s in mensaje_norm for s in ["HOLA", "MENU", "DIAS"]):
-        return ("👋 ¡Bienvenido a Cuerpo Fiel 4.0! Soy tu asistente de salud basado en los 8 Remedios Naturales. "
-                "Escribe un síntoma (ej: 'Glucosa 120') o una emoción (ej: 'Ansiedad').")
+    saludos = ["HOLA", "BUENOS", "INICIO", "AYUDA", "MENU", "DIAS", "TARDES"]
+    if any(s in mensaje_norm for s in saludos):
+        return (
+            "👋 *¡Bienvenido a Cuerpo Fiel 4.0!* Soy tu asistente de salud adventista.\n\n"
+            "🌿 *MI BASE:* 8 Remedios Naturales (ADELANTE).\n"
+            "💡 *EJEMPLOS:* 'Glucosa 150', 'Presion 140', 'Tengo ansiedad'.\n\n"
+            "⚠️ *AVISO LEGAL:* No soy un médico. Mis consejos son educativos."
+        )
 
     try:
         chat = model.start_chat(history=[])
         prompt_final = f"{INSTRUCCION_SISTEMA}\n\nEl usuario dice: {mensaje_usuario}"
         
         response = chat.send_message(prompt_final)
-        # Limpieza final de la respuesta
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, mi cerebro central está saturado. Intenta de nuevo en un momento."
+        return "⚠️ Lo siento, mi cerebro central está saturado. Intenta de nuevo en 1 minuto."
 
 # ==========================================
 # 4. SERVIDOR WEB (RUTAS)
 # ==========================================
-@app.route('/webhooks/telegram', methods=['POST']) # RUTA DE TELEGRAM
-@app.route('/chat', methods=['POST']) # RUTA DE TWILIO/TESTING
+@app.route('/webhooks/telegram', methods=['POST'])
+@app.route('/chat', methods=['POST'])
 def chat():
     # 1. Recibir y obtener datos limpios
     celular = request.values.get('From', 'Test').replace('whatsapp:', '')
-    mensaje_in = request.values.get('Body', request.values.get('text', ''))
+    mensaje_in = request.values.get('Body', '')
     
+    # Soporte para pruebas locales (JSON)
+    datos_json = request.get_json(silent=True) or {}
+    mensaje_final = mensaje_in if mensaje_in else datos_json.get('mensaje', '')
+    
+    print(f"📩 Recibido: {mensaje_final}")
+
     # 2. Consultar y Guardar
-    respuesta = consultar_gemini(mensaje_in)
-    guardar_historial(celular, mensaje_in, respuesta)
+    respuesta = consultar_gemini(mensaje_final)
+    guardar_historial(celular, mensaje_final, respuesta)
 
-    # 3. Responder (Para Twilio, simplemente devolvemos XML)
-    if 'whatsapp' in celular.lower():
-        from twilio.twiml.messaging_response import MessagingResponse
-        resp = MessagingResponse()
-        resp.message(respuesta)
-        # Devolver XML con el header correcto para Twilio
-        return Response(str(resp), mimetype='application/xml')
-
-    # 4. Responder a Telegram/Local (JSON)
-    return jsonify({"status": "success", "response": respuesta}), 200
+    # 3. Responder a Twilio (OBLIGATORIO XML)
+    resp = MessagingResponse()
+    resp.message(respuesta)
+    
+    # Devolver respuesta con el header correcto
+    return Response(str(resp), mimetype='application/xml')
 
 if __name__ == '__main__':
-    # Render usa la variable de entorno 'PORT' (o el puerto 8080 si no está definida)
+    # Render usa la variable de entorno 'PORT'
     port = int(os.environ.get('PORT', 8080))
     print(f"🚀 CUERPO FIEL 4.0 - FINAL PORT: {port}")
-    # Gunicorn se encargará de ejecutar esto en la nube, pero lo dejamos para pruebas locales
     app.run(host='0.0.0.0', port=port, debug=True)
