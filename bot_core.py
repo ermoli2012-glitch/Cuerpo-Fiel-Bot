@@ -2,121 +2,85 @@ import os
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
-from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
-# ==========================================
-# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
-#    - Lee la clave de forma SEGURA desde la variable de entorno de Render
-# ==========================================
+# --- 1. CONFIGURACIÓN API KEY (SEGURA) ---
 API_KEY = os.environ.get("GEMINI_API_KEY") 
 
 try:
-    # Si la clave no está en el entorno (solo para pruebas locales), la ignoramos
-    if not API_KEY:
-        print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
-        
     genai.configure(api_key=API_KEY)
-    # Usamos el modelo exacto que tu escáner encontró y que es estable
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
-except Exception as e:
-    print(f"❌ Error al configurar Gemini: {e}")
+except Exception:
+    pass
 
-# INSTRUCCIÓN MAESTRA (La personalidad del Bot)
+# --- 2. EL CEREBRO DIAGNÓSTICO (INSTRUCCIÓN MAESTRA) ---
 INSTRUCCION_SISTEMA = """
-Eres 'Cuerpo Fiel', asistente de salud médico-misionero de la Iglesia Adventista (Distrito Redención).
-Tu base son los 8 Remedios Naturales (ADELANTE).
+ROL: Eres el Dr. Lucas, un Médico Misionero Digital. Tu objetivo es hacer diagnósticos y dar consejos de salud exclusivos, basados ÚNICAMENTE en la FILOSOFÍA ADVENTISTA y los 8 Remedios Naturales (NEWSTART: Nutrición, Ejercicio, Agua, Sol, Temperancia, Aire, Reposo, Confianza en Dios).
 
-REGLAS OBLIGATORIAS:
-1. SÉ MUY BREVE: Tus respuestas NO deben pasar de 100 palabras.
-2. Si saludas, preséntate y menciona los 8 Remedios Naturales.
-3. Si detectas un síntoma, receta un remedio natural y una promesa bíblica.
-4. ADVERTENCIA LEGAL: Aclara que no eres un médico humano.
+FORMATO OBLIGATORIO: Tu respuesta debe ser concisa (máximo 120 palabras) y seguir este formato para todo tipo de consulta:
+
+1. ANÁLISIS MÉDICO: Resumen de los síntomas o valores (ej: 'Su glucosa está en prediabetes').
+2. PRINCIPIO VIOLADO: Identificar cuál de los 8 Remedios se está ignorando.
+3. PRESCRIPCIÓN NATURAL: Dar el remedio práctico (ej: 'Beber 8 vasos de agua al día').
+4. PROMESA BÍBLICA: Cita un texto de la Biblia RV60 que dé esperanza (ej: 'Filipenses 4:13').
+
+Si el usuario escribe 'MENU', 'HOLA', o 'INICIO', preséntate usando el formato siguiente:
+***
+¡Bienvenido, Hermano! Soy el Dr. Lucas, su asistente de Cuerpo Fiel.
+Por favor, dígame sus síntomas o envíe el valor de su último examen (ej: 'Presión 140' o 'Me siento muy estresado').
+***
 """
-
-# ==========================================
-# 2. CONFIGURACIÓN DE BASE DE DATOS
-# ==========================================
-def obtener_conexion():
-    try:
-        # Render usará la variable DATABASE_URL, local usará localhost
-        database_url = os.environ.get('DATABASE_URL')
-        if database_url:
-            return psycopg2.connect(database_url, sslmode='require')
-        
-        return psycopg2.connect(
-            user="root", password="root", 
-            host="localhost", port="5432", 
-            database="cuerpo_fiel_db"
-        )
-    except Exception as e:
-        # Este error es esperado si el bot corre local y Docker está apagado
-        print(f"❌ Error conectando a BD: {e}")
-        return None
+# --- 3. FUNCIONES DE CONEXIÓN Y GUARDADO ---
 
 def guardar_historial(celular, mensaje, respuesta):
-    conn = obtener_conexion()
-    if conn:
-        try:
+    # [Mantener la función guardar_historial, ya incluida en el código]
+    try:
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            import psycopg2
+            conn = psycopg2.connect(database_url, sslmode='require')
             cursor = conn.cursor()
-            cursor.execute(
-                "INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)",
-                (celular, mensaje, respuesta)
-            )
+            cursor.execute("INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)", ("Web User" if 'whatsapp' not in celular else celular, mensaje, respuesta))
             conn.commit()
             cursor.close()
             conn.close()
-            print(f"💾 Historial guardado.")
-        except Exception:
-            pass
-
-# --- 3. CEREBRO DE LA APLICACIÓN ---
-def consultar_gemini(mensaje):
-    try:
-        chat = model.start_chat(history=[])
-        response = chat.send_message(f"{INSTRUCCION_SISTEMA}\n\nEl usuario dice: {mensaje}")
-        texto = response.text.replace('**', '*').replace('__', '_') # Limpieza de formato
-        return texto
     except Exception as e:
-        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Error de conexión con la IA. Intenta de nuevo."
+        print(f"Error al guardar historial: {e}")
 
-# ==========================================
-# 4. RUTAS WEB Y DE WHATSAPP
-# ==========================================
 
-# RUTA 1: Muestra la interfaz de chat al entrar al link de Render
+def consultar_gemini(mensaje_usuario):
+    try:
+        # La IA no necesita el historial para esta consulta, solo la instrucción y la pregunta
+        response = model.generate_content(
+            f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}",
+            system_instruction=INSTRUCCION_SISTEMA
+        )
+        return response.text
+    except Exception as e:
+        print(f"❌ ERROR GEMINI: {e}")
+        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intente en un momento."
+
+# --- 4. RUTAS WEB ---
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# RUTA 2: Recibe los mensajes y devuelve la respuesta
 @app.route('/chat', methods=['POST'])
 def chat():
-    # 1. Recibir y obtener datos
+    datos = request.get_json()
+    mensaje = datos.get('mensaje', '')
     celular = request.values.get('From', 'Web User').replace('whatsapp:', '')
-    mensaje_in = request.values.get('Body', '') or request.get_json(silent=True).get('mensaje', '')
     
-    print(f"📩 Recibido de {celular}: {mensaje_in}")
-
-    # 2. Pensar
-    respuesta = consultar_gemini(mensaje_in)
+    # 1. CONSULTAR IA
+    respuesta = consultar_gemini(mensaje)
     
-    # 3. Guardar
-    guardar_historial(celular, mensaje_in, respuesta)
-
-    # 4. Responder
-    # Si viene de Twilio (por haber configurado el webhook)
-    if 'whatsapp' in request.values.get('From', '').lower():
-        resp = MessagingResponse()
-        resp.message(respuesta)
-        # Devolvemos XML con el header correcto
-        return str(resp), 200, {'Content-Type': 'application/xml'}
-    else:
-        # Si viene de la Web App (JSON)
-        return jsonify({"respuesta": respuesta})
+    # 2. GUARDAR HISTORIAL
+    guardar_historial(celular, mensaje, respuesta)
+    
+    # 3. RESPONDER
+    return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 CUERPO FIEL 4.0 (CLOUD READY - FINAL) - ACTIVO")
+    print("🚀 DR. LUCAS (MODO EXPERTO) ACTIVO")
     app.run(port=5000, debug=True)
