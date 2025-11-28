@@ -1,127 +1,79 @@
 import os
-import requests
-import datetime
+import psycopg2
 import google.generativeai as genai
-from flask import Flask, request, jsonify
-from pymongo import MongoClient 
-import telebot # Librería de Telegram Bot API
+# Importamos render_template para poder cargar el HTML
+from flask import Flask, request, jsonify, render_template
 
 app = Flask(__name__)
 
-# ==========================================
-# 1. CONFIGURACIÓN DE SEGURIDAD Y ENTORNO
-# ==========================================
-# Estas variables se leen del panel de Render (Medio ambiente)
-TELEGRAM_TOKEN = os.environ.get('TELEGRAM_TOKEN') 
-MONGO_URI = os.environ.get('MONGO_URI')
-API_KEY = os.environ.get('GEMINI_API_KEY') 
-RENDER_URL = "https://cuerpo-fiel-bot.onrender.com" # Reemplazar con tu URL base de Render
+# --- 1. CONFIGURACIÓN API KEY ---
+# ¡REEMPLAZA ESTO CON TU CLAVE REAL DE GEMINI!
+API_KEY = "AIzaSyCxroN9mO-IqOv15dV2xQJ29paNZtyzILE" 
 
-# Inicialización global de los clientes
 try:
-    # 1. Inicialización de Gemini
     genai.configure(api_key=API_KEY)
-    model = genai.GenerativeModel('gemini-1.5-flash') 
-    
-    # 2. Inicialización de Telegram
-    bot = telebot.TeleBot(TELEGRAM_TOKEN)
+    # Usamos el modelo más rápido y accesible
+    model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
 except Exception as e:
-    print(f"❌ ERROR CRÍTICO DE INICIO: {e}")
-    # Si la aplicación falla aquí, Render la reiniciará
+    print(f"⚠️ Error Gemini: {e}")
 
-# ==========================================
-# 2. BASE DE DATOS (MongoDB)
-# ==========================================
-def obtener_coleccion():
+# --- 2. CONFIGURACIÓN BD ---
+# Esta función ahora usa 'Web User' en lugar del número de celular
+def guardar_historial(mensaje, respuesta):
     try:
-        client = MongoClient(MONGO_URI)
-        db = client.get_database('cuerpo_fiel_db') # Nombre de tu base de datos
-        return db.historial_chats
+        # Usamos la variable de Render para la conexión a la nube
+        database_url = os.environ.get('DATABASE_URL')
+        if database_url:
+            conn = psycopg2.connect(database_url, sslmode='require')
+        else:
+            # Opción local por si quieres probarlo en tu máquina
+            conn = psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
+            
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)", ("Web User", mensaje, respuesta))
+        conn.commit()
+        cursor.close()
+        conn.close()
     except Exception as e:
-        return None
+        print(f"Error BD: {e}")
 
-def guardar_historial(chat_id, mensaje, respuesta):
-    coleccion = obtener_coleccion()
-    if coleccion:
-        try:
-            coleccion.insert_one({
-                "usuario_id": chat_id,
-                "mensaje": mensaje,
-                "respuesta_ai": respuesta,
-                "fecha": datetime.datetime.now()
-            })
-            print(f"💾 Historial guardado para chat {chat_id}")
-        except Exception as e:
-            print(f"⚠️ Error al guardar en Mongo: {e}")
-
-# ==========================================
-# 3. LÓGICA (GEMINI)
-# ==========================================
-INSTRUCCION_SISTEMA = """
-Eres 'Cuerpo Fiel', el asistente de salud adventista.
-Responde de forma breve (máximo 100 palabras) y espiritual, usando los 8 Remedios Naturales. Termina con un versículo bíblico.
+# --- 3. CEREBRO IA ---
+INSTRUCCION = """
+Eres 'Cuerpo Fiel', asistente de salud adventista.
+Responde corto, empático y usa emojis.
+Receta remedios naturales (NEWSTART) y citas bíblicas.
 """
 
-def consultar_gemini(mensaje_usuario):
+def consultar_gemini(mensaje):
     try:
         chat = model.start_chat(history=[])
-        response = chat.send_message(f"{INSTRUCCION_SISTEMA}\n\nUsuario: {mensaje_usuario}")
+        response = chat.send_message(f"{INSTRUCCION}\n\nUsuario: {mensaje}")
         return response.text
-    except Exception as e:
-        print(f"❌ ERROR CRÍTICO DE GEMINI: {e}")
-        return "⚠️ Lo siento, mi cerebro IA está fallando. Intenta de nuevo en un momento."
+    except:
+        return "⚠️ El sistema se está reiniciando. Intenta en 1 minuto."
 
-# ==========================================
-# 4. RUTAS DE FLASK (El Escucha y el Activador)
-# ==========================================
+# --- 4. RUTAS WEB ---
 
-# A. RUTA PARA ESTABLECER EL WEBHOOK (El FIX que faltaba)
-@app.route('/setwebhook', methods=['GET'])
-def set_webhook_route():
-    if not TELEGRAM_TOKEN: return "ERROR: TELEGRAM_TOKEN no configurado en Render ENV", 500
+# RUTA 1: Muestra la interfaz de chat al entrar al link de Render
+@app.route('/')
+def home():
+    # Render_template busca el archivo index.html en la carpeta 'templates'
+    return render_template('index.html')
+
+# RUTA 2: Recibe el mensaje desde el chat y devuelve la respuesta
+@app.route('/chat', methods=['POST'])
+def chat():
+    # Obtiene el mensaje del JSON que envía el JavaScript
+    datos = request.get_json()
+    mensaje = datos.get('mensaje', '')
     
-    # La URL a la que Telegram enviará los mensajes
-    webhook_url = f"{RENDER_URL}/{TELEGRAM_TOKEN}"
+    print(f"📩 Web Recibido: {mensaje}")
+    respuesta = consultar_gemini(mensaje)
     
-    # Le decimos a Telegram dónde está nuestro bot
-    s = bot.set_webhook(url=webhook_url)
-
-    if s:
-        return f"✅ Webhook de Telegram establecido correctamente en: {webhook_url}", 200
-    else:
-        return "❌ Fallo al establecer el webhook de Telegram.", 500
-
-
-# B. RUTA PARA RECIBIR MENSAJES (El endpoint activo: /TELEGRAM_TOKEN)
-@app.route(f'/{TELEGRAM_TOKEN}', methods=['POST'])
-def telegram_webhook_receiver():
-    if not TELEGRAM_TOKEN: return "ERROR: TOKEN NOT SET", 500
-
-    try:
-        # Procesar el JSON que envía Telegram
-        update = telebot.types.Update.de_json(request.stream.read().decode("utf-8"))
-        
-        if update.message:
-            message = update.message
-            chat_id = message.chat.id
-            mensaje_usuario = message.text
-
-            # 1. Consultar IA y obtener respuesta
-            respuesta_texto = consultar_gemini(mensaje_usuario)
-            
-            # 2. Guardar en MongoDB
-            guardar_historial(chat_id, mensaje_usuario, respuesta_texto)
-
-            # 3. Enviar Respuesta de vuelta a Telegram
-            bot.send_message(chat_id, respuesta_texto)
-        
-        return "OK", 200
-    except Exception as e:
-        print(f"❌ ERROR CRÍTICO AL PROCESAR MENSAJE: {e}")
-        return "ERROR INTERNO", 500
-
+    guardar_historial(mensaje, respuesta)
+    
+    # Devuelve la respuesta en formato JSON para que JavaScript la lea
+    return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 CUERPO FIEL 4.0 (TELEGRAM/MONGO) - Activo")
-    # Nota: Render usa gunicorn, no app.run
-    pass
+    app.run(port=5000, debug=True)

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cuerpo Fiel 4.0</title>
+    <style>
+        body { font-family: sans-serif; background-color: #e5ddd5; margin: 0; display: flex; flex-direction: column; height: 100vh; }
+        .header { background-color: #075e54; color: white; padding: 15px; text-align: center; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.2); }
+        .chat-container { flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 10px; }
+        .message { max-width: 80%; padding: 10px 15px; border-radius: 10px; line-height: 1.4; position: relative; font-size: 15px; }
+        .user { align-self: flex-end; background-color: #dcf8c6; color: #000; border-bottom-right-radius: 0; }
+        .bot { align-self: flex-start; background-color: #fff; color: #000; border-bottom-left-radius: 0; }
+        .input-area { background: #f0f0f0; padding: 10px; display: flex; gap: 10px; align-items: center; }
+        input { flex: 1; padding: 12px; border-radius: 20px; border: 1px solid #ccc; outline: none; }
+        button { background-color: #075e54; color: white; border: none; padding: 12px 20px; border-radius: 50%; cursor: pointer; font-weight: bold; }
+        .loading { font-style: italic; color: #666; font-size: 12px; margin-left: 10px; display: none;}
+    </style>
+</head>
+<body>
+
+<div class="header">🌿 Cuerpo Fiel 4.0 (Distrito Redención)</div>
+
+<div class="chat-container" id="chatbox">
+    <div class="message bot">👋 ¡Hola! Soy tu asistente de salud adventista. ¿Cómo te sientes hoy?</div>
+</div>
+<div class="loading" id="loading">Escribiendo...</div>
+
+<div class="input-area">
+    <input type="text" id="userInput" placeholder="Escribe aquí (ej: Tengo ansiedad)..." onkeypress="handleEnter(event)">
+    <button onclick="sendMessage()">➤</button>
+</div>
+
+<script>
+    async function sendMessage() {
+        const input = document.getElementById('userInput');
+        const chatbox = document.getElementById('chatbox');
+        const loading = document.getElementById('loading');
+        const text = input.value.trim();
+
+        if (!text) return;
+
+        // 1. Mostrar mensaje del usuario
+        chatbox.innerHTML += `<div class="message user">${text}</div>`;
+        input.value = '';
+        chatbox.scrollTop = chatbox.scrollHeight;
+        loading.style.display = 'block';
+
+        // 2. Enviar a tu servidor Python
+        try {
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ mensaje: text })
+            });
+            const data = await response.json();
+
+            // 3. Mostrar respuesta del Bot
+            let botText = data.respuesta
+                .replace(/\n/g, '<br>')
+                .replace(/\*\*(.*?)\*\*/g, '<b>$1</b>'); 
+
+            chatbox.innerHTML += `<div class="message bot">${botText}</div>`;
+        } catch (error) {
+            chatbox.innerHTML += `<div class="message bot">⚠️ Error de conexión. Intenta de nuevo.</div>`;
+        }
+
+        loading.style.display = 'none';
+        chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function handleEnter(e) {
+        if (e.key === 'Enter') sendMessage();
+    }
+</script>
+
+</body>
+</html>
