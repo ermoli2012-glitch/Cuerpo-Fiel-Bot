@@ -10,18 +10,18 @@ app = Flask(__name__)
 # 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
 #    - Lee la clave de forma SEGURA desde la variable de entorno de Render
 # ==========================================
-API_KEY = os.environ.get("AIzaSyDnj6bAoCGI8zOLmapuC-3fkmi7L7Gn7iI") 
+API_KEY = os.environ.get("GEMINI_API_KEY") 
 
 try:
+    # Si la clave no está en el entorno (solo para pruebas locales), la ignoramos
     if not API_KEY:
-        # Esto solo se ejecuta si la variable no existe (ej: prueba local sin configurar)
-        print("⚠️ Advertencia: API Key de Gemini no encontrada en el entorno.")
+        print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
         
     genai.configure(api_key=API_KEY)
-    # Usamos el modelo más estable que tu escáner encontró
+    # Usamos el modelo exacto que tu escáner encontró y que es estable
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025')
 except Exception as e:
-    print(f"❌ Error configurando Gemini: {e}")
+    print(f"❌ Error al configurar Gemini: {e}")
 
 # INSTRUCCIÓN MAESTRA (La personalidad del Bot)
 INSTRUCCION_SISTEMA = """
@@ -51,6 +51,7 @@ def obtener_conexion():
             database="cuerpo_fiel_db"
         )
     except Exception as e:
+        # Este error es esperado si el bot corre local y Docker está apagado
         print(f"❌ Error conectando a BD: {e}")
         return None
 
@@ -59,7 +60,10 @@ def guardar_historial(celular, mensaje, respuesta):
     if conn:
         try:
             cursor = conn.cursor()
-            cursor.execute("INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)", (celular, mensaje, respuesta))
+            cursor.execute(
+                "INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)",
+                (celular, mensaje, respuesta)
+            )
             conn.commit()
             cursor.close()
             conn.close()
@@ -82,12 +86,12 @@ def consultar_gemini(mensaje):
 # 4. RUTAS WEB Y DE WHATSAPP
 # ==========================================
 
-# RUTA PRINCIPAL: Muestra la interfaz de chat (para que el link de Render no dé 404)
+# RUTA 1: Muestra la interfaz de chat al entrar al link de Render
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# RUTA API: Recibe los mensajes
+# RUTA 2: Recibe los mensajes y devuelve la respuesta
 @app.route('/chat', methods=['POST'])
 def chat():
     # 1. Recibir y obtener datos
@@ -102,18 +106,17 @@ def chat():
     # 3. Guardar
     guardar_historial(celular, mensaje_in, respuesta)
 
-    # 4. Responder (Formato Twilio XML)
-    resp = MessagingResponse()
-    resp.message(respuesta)
-    
-    # Esta ruta maneja las peticiones locales (JSON) y las de Twilio (XML)
+    # 4. Responder
+    # Si viene de Twilio (por haber configurado el webhook)
     if 'whatsapp' in request.values.get('From', '').lower():
-        # Respuesta a Twilio (con formato XML correcto)
+        resp = MessagingResponse()
+        resp.message(respuesta)
+        # Devolvemos XML con el header correcto
         return str(resp), 200, {'Content-Type': 'application/xml'}
     else:
-        # Respuesta a la Web App (JSON)
+        # Si viene de la Web App (JSON)
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 CUERPO FIEL 4.0 - SISTEMA COMPLETO ACTIVO")
+    print("🚀 CUERPO FIEL 4.0 (CLOUD READY - FINAL) - ACTIVO")
     app.run(port=5000, debug=True)
