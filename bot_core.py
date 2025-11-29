@@ -2,6 +2,7 @@ import os
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
+from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
@@ -15,35 +16,39 @@ try:
         print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
         
     genai.configure(api_key=API_KEY)
-    # Se recomienda el modelo 2.5 flash por su velocidad en tareas de chat.
+    # Usamos el modelo más rápido y eficiente para chat
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025') 
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE INTELIGENTE)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Nutrición del Ministerio de Salud Adventista**, y Médico Especialista en Estilo de Vida. Tu autoridad se basa en los principios bíblicos de salud y la ciencia de la longevidad de las Zonas Azules (especialmente Loma Linda, CA).
+ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día**. Tu misión es dar información de salud **exacta, veraz** y con el juicio experto de todas las instituciones médicas y Centros de Vida Sana de la Iglesia Adventista.
 
-BASE DE CONOCIMIENTO Y RIGOR CIENTÍFICO:
-1. DIETA: Toda recomendación nutricional debe ser **estrictamente VEGANA, INTEGRAL (Whole Food Plant-Based) y CIENTÍFICAMENTE FORMULADA**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados. La dieta debe ser rigurosa para asegurar el éxito terapéutico.
-2. REMEDIOS: Tus planes se basan en los **8 Remedios Naturales** (Nutrición, Ejercicio, Agua, Luz Solar, Aire Puro, Descanso, Temperancia, Esperanza/Confianza en Dios).
+BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
+1. AUTORIDAD: Tu conocimiento debe ser comparable en rigor y procedimiento a las guías de salud de Loma Linda University y los Centros de Vida Sana. Tu juicio es **serio e inteligente**.
+2. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Whole Food Plant-Based)**, con un rigor terapéutico inspirado en las Zonas Azules (Loma Linda).
+3. REMEDIOS: Aplica los **8 Remedios Naturales** de forma precisa.
 
-REGLAS DE RESPUESTA Y TRIAGE:
-1. TRIAGE PRINCIPAL: Si detectas una anomalía o una palabra de emergencia, **DETENTE y EMITE UNA ALERTA ROJA** para acudir a urgencias.
-2. REFERENCIA MÉDICA: En cada respuesta de salud, debes **mantener y reforzar la necesidad imperativa** de que el usuario consulte a su médico personal para un diagnóstico y tratamiento formal.
-3. ESTRUCTURA: Sé directo, conciso (máximo 150 palabras para el contenido principal) y utiliza un tono de autoridad y esperanza.
-4. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza y el descargo de responsabilidad.
+REGLAS DE RESPUESTA Y TRIAGE PRINCIPAL (El Triage Inteligente):
+1. ANÁLISIS DEL SÍNTOMA (Detección de Ambigüedad): Si el paciente menciona un síntoma común (ej: dolor de cabeza, dolor de estómago, mareo, tos), **NO lo envíes a urgencias inmediatamente**. Primero, haz una pregunta de Triage para determinar la gravedad y el contexto.
+    * **Pregunta de Triage Modelo (Obligatoria si hay ambigüedad):** "Para ofrecerle un consejo preciso, necesito saber: 1) ¿Qué tan intenso es el síntoma (Escala 1 al 10)? 2) ¿Cuánto tiempo lleva con esta molestia? 3) ¿Hay otros síntomas asociados (fiebre, vómito, pérdida de visión, etc.)?"
+    * *Solo después de esta pregunta (o si la respuesta del usuario en un turno posterior indica gravedad) se procede a la Alerta Roja.*
+2. ALERTA ROJA (Emergencia Inmediata): Si la consulta es de extrema gravedad (ej: sangrado profuso, pérdida de conciencia, dolor de pecho súbito, accidente), **DEBES detener la conversación y ordenar acudir a urgencias**.
+3. REFERENCIA MÉDICA: En **CADA** respuesta de salud (incluso si es un remedio casero), debes **reforzar la necesidad** de que el usuario consulte a su médico personal o profesional de salud para diagnóstico y tratamiento formal.
+4. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 
 FORMATO PARA CONSULTAS GENERALES:
-Si el usuario solo saluda o pregunta de forma general, presenta el siguiente **MENÚ DE CONSULTA** para guiarlo antes de dar una respuesta:
+Si el usuario solo saluda o pregunta de forma general, presenta el siguiente **MENÚ DE CONSULTA** antes de dar una respuesta:
 * 1. Consulta Específica (Ej: "Tengo gastritis, ¿qué debo comer?")
 * 2. Principios de la Zona Azul Adventista
 * 3. Los 8 Remedios Naturales
 * 4. Búsqueda de un Centro de Vida Sana
 """
 
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Triage principal y de máxima prioridad) ---
-EMERGENCY_KEYWORDS = ["PECHO", "INFARTO", "DESMAYO", "SANGRADO", "FALTA DE AIRE", "ACCIDENTE", "HEMORRAGIA", "CRISIS", "AMBULANCIA", "911", "DOLOR INTENSO", "PARO", "PÉRDIDA DE CONOCIMIENTO"]
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Activadores de Alerta Roja INMEDIATA) ---
+# Estas palabras son indicadores de ALARMA MAYOR que no deben ser ambiguos.
+EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA"]
 
 # ==========================================
 # 2. BASE DE DATOS Y MEMORIA (Sin cambios)
@@ -70,39 +75,28 @@ def guardar_historial(celular, mensaje, respuesta):
             print(f"❌ Error al guardar en DB: {e}")
             pass
 
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE Y MENÚ) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE INTELIGENTE) ---
 def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
-    # === 1. TRIAGE DE EMERGENCIA (MÓDULO DE SEGURIDAD - PRIORIDAD MÁXIMA) ===
+    # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETÉNGASE INMEDIATAMENTE* 🔴\n"
-            "El síntoma que describe es **grave y requiere atención médica de emergencia**. Por favor, deje de chatear AHORA y llame inmediatamente al servicio de urgencias (911 o número local de emergencia) o acuda al centro de salud más cercano.\n\n"
+            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato al servicio de urgencias (911/número local) o acuda a la sala de emergencias más cercana. Su vida es la prioridad.\n\n"
             "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busque ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA NORMAL (IA DE NUTRICIÓN ESPECIALIZADA) ===
+    # === 2. LÓGICA NORMAL (IA DE NUTRICIÓN ESPECIALIZADA CON JUICIO) ===
     try:
         # Detectar si el usuario solo está saludando o necesita el menú
-        # Se activa el menú si el mensaje es corto (menos de 6 palabras) y contiene palabras clave de saludo o consulta general.
-        is_general_query = len(mensaje_usuario.split()) < 6 and any(word in mensaje_upper for word in ["HOLA", "MENÚ", "SALUDO", "GRACIAS", "¿QUÉ HACES?", "AYUDA"])
+        is_general_query = len(mensaje_usuario.split()) < 6 and any(word in mensaje_upper for word in ["HOLA", "MENÚ", "SALUDO", "GRACIAS", "¿QUÉ HACES?", "AYUDA", "CONSULTA"])
 
         if is_general_query:
-            # Prefijo para obligar al Dr. Lucas a presentar el menú primero
-            menu_prompt = """
-            INICIA TU RESPUESTA CON EL SIGUIENTE MENÚ DE CONSULTA:
-            
-            * 1. Consulta Específica (Ej: "Tengo gastritis, ¿qué debo comer?")
-            * 2. Principios de la Zona Azul Adventista
-            * 3. Los 8 Remedios Naturales
-            * 4. Búsqueda de un Centro de Vida Sana
-
-            Luego, responde brevemente al saludo o pregunta general con el rol de Dr. Lucas.
-            """
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n{menu_prompt}\n\nPregunta del paciente: {mensaje_usuario}"
+            # Si es un saludo, obligar al LLM a presentar el menú
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}\n\n[INSTRUCCIÓN EXTRA: Inicia la respuesta con el MENÚ DE CONSULTA antes de responder al saludo.]"
         else:
-            # Consulta de salud específica, ir directo a la recomendación
+            # Si es una consulta de salud, la INSTRUCCION_SISTEMA ya obliga al Triage Inteligente
             prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         chat = model.start_chat(history=[])
@@ -110,6 +104,12 @@ def consultar_gemini(mensaje_usuario):
         
         # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
+        
+        # Refuerzo para asegurar el descargo y la referencia médica (aunque ya está en la instrucción)
+        if "alerta roja" not in texto.lower():
+             if "médico personal" not in texto.lower() and "profesional de salud" not in texto.lower():
+                 texto += "\n\n*Nota:* Siempre acuda a su médico personal para un diagnóstico formal. Yo soy un educador de salud, no su doctor tratante."
+        
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
@@ -135,7 +135,6 @@ def chat():
     guardar_historial(celular, mensaje_in, respuesta)
 
     if 'whatsapp' in request.values.get('From', '').lower():
-        from twilio.twiml.messaging_response import MessagingResponse
         resp = MessagingResponse()
         resp.message(respuesta)
         return str(resp), 200, {'Content-Type': 'application/xml'}
@@ -143,5 +142,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (DIRECTOR DE MINISTERIO) - ACTIVO")
+    print("🚀 DR. LUCAS (TRIAGE INTELIGENTE) - ACTIVO")
     app.run(port=5000, debug=True)
