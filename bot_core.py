@@ -20,32 +20,28 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (JUICIO CLÍNICO, NUTRICIÓN RIGUROSA Y FLUJO HUMANO)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE CONVERSACIONAL)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el **Dr. Lucas**, Guía de Salud Integral, Nutricionista, y Especialista en Estilo de Vida del Ministerio de Salud Adventista. Tu función es ser un **consultor profesional, rápido y humano**.
+ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día**. Tu función es ser un médico especialista, nutricionista y naturista, guiando siempre con los principios de salud de la Iglesia Adventista del Séptimo Día y sus instituciones de vida sana.
 
-MISIÓN: Proveer información de salud exacta, veraz, rápida e intuitiva, siempre bajo los principios de salud de la Iglesia Adventista del Séptimo Día.
+MISIÓN: Proveer información de salud **exacta, veraz, rápida e intuitiva**, manteniendo una interacción profesional y humana.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados.
-2. REMEDIOS: Aplica los 8 Remedios Naturales.
-3. ESTRUCTURA VISUAL: Utiliza *negritas*, saltos de línea y emojis de forma EXTENSIVA para que el mensaje sea intuitivo y no parezca un bloque de texto.
+1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Whole Food Plant-Based)**, como estándar de las instituciones de salud adventistas.
+2. REMEDIOS: Aplica los 8 Remedios Naturales de forma precisa.
 
-REGLAS DE FLUJO Y TRIAGE:
-1. **PRESENTACIÓN INICIAL (Solo en Saludos):** Si el mensaje es un saludo o una consulta general, usa esta introducción corta: "Soy el Dr. Lucas, y seré tu guía. Para un plan más humano, ¿cuál es tu nombre? ¿Cómo estás hoy y en qué te puedo ayudar?". Luego presenta el MENÚ DE CONSULTA.
-2. **OMISIÓN INTELIGENTE:** Si la consulta es específica de salud (ej: 'tengo dolor de cabeza'), OMITE la presentación larga y el menú. Ve directamente al diagnóstico/remedio.
-3. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: sangrado profuso, pérdida de conciencia, dolor de pecho súbito), **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata**.
-4. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de ver a tu médico personal.
+REGLAS DE RESPUESTA Y JUICIO EXPERTO (Flujo Humano):
+1. **PRESENTACIÓN INICIAL:** En el primer mensaje o saludo, aplica la regla de Introducción Humana (pregunta el nombre y presenta el menú).
+2. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara, **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata**.
+3. TRIAGE PRÁCTICO: Para síntomas comunes (ej: dolor de cabeza, gastritis), da una recomendación práctica inmediata y **añade una advertencia de Triage integrada** en el mismo consejo.
+4. REFERENCIA MÉDICA: Refuerza la necesidad de ver a tu médico personal.
 5. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+
+FORMATO DE MENÚ: [MENÚ DE OPCIONES: 1. Consulta; 2. Plan Nutricional; 3. Remedios Naturales; 4. Centro de Vida Sana]
 """
 
-# FORMATO DE MENÚ (Para la primera interacción):
-MENU_OPCIONES = """
-* 1. Consulta Específica de Síntoma/Dolencia
-* 2. Plan Nutricional Vegano Integral
-* 3. Guía de los 8 Remedios Naturales
-* 4. Ubicar un Centro de Vida Sana
-"""
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (El error que faltaba) ---
+EMERGENCY_KEYWORDS = ["PECHO", "INFARTO", "PÉRDIDA DE CONCIENCIA", "SANGRADO PROFUSO", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
 # 2. BASE DE DATOS Y MEMORIA (Sin cambios)
@@ -68,10 +64,11 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception:
+        except Exception as e:
+            print(f"❌ Error al guardar en DB: {e}")
             pass
 
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO HUMANO) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE CONVERSACIONAL) ---
 def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
@@ -79,28 +76,23 @@ def consultar_gemini(mensaje_usuario):
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETÉNGASE INMEDIATAMENTE* 🔴\n"
-            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato a los servicios de urgencias (911/número local). Su vida es la prioridad.\n\n"
+            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato a los servicios de emergencia (911/número local) o acuda a la sala de emergencias más cercana. Su vida es la prioridad.\n\n"
             "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busque ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA CONVERSACIONAL Y MENU INTUITIVO ===
+    # === 2. LÓGICA NORMAL (IA CON JUICIO) ===
     try:
         # Check para activar la presentación de primer contacto
-        is_greeting = len(mensaje_usuario.split()) < 5 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA", "MENU", "OPCIONES", "QUISIERA"])
+        is_initial_interaction = len(mensaje_usuario.split()) < 6 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA", "MENU", "OPCIONES", "QUISIERA"])
 
-        if is_greeting:
-            # Si es un saludo, enviamos la presentación completa con el menú
-            presentacion_prompt = f"""
-            INSTRUCCIÓN ESPECIAL: Aplica la Regla 1 de tu ROL: Saluda, pregunta el nombre y el estado, y presenta el MENÚ DE CONSULTA.
-
-            MENÚ:
-            {MENU_OPCIONES}
-
-            Pregunta del paciente: {mensaje_usuario}
+        if is_initial_interaction:
+            # Forzamos al Dr. Lucas a iniciar la interacción de forma humana y con el menú
+            presentacion_prompt = """
+            INSTRUCCIÓN ESPECIAL: Aplica la regla de PRIMER CONTACTO: Inicia tu respuesta con un saludo humano, pregunta el nombre del paciente y luego pregunta: "¿Cómo estás hoy y en qué te puedo ayudar?". Finaliza tu respuesta con el MENÚ DE CONSULTA de forma clara.
             """
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_prompt}"
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_prompt}\n\nPregunta del paciente: {mensaje_usuario}"
         else:
-            # Si es una consulta específica, la INSTRUCCION_SISTEMA ya obliga a ir directo al diagnóstico.
+            # Consulta específica: el LLM aplica el Triage Práctico y responde inmediatamente.
             prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         # Llamada a Gemini
@@ -109,10 +101,15 @@ def consultar_gemini(mensaje_usuario):
         
         # Limpieza de formato
         texto = response.text.replace('**', '*').replace('__', '_')
+        
+        # Refuerzo de seguridad (se añade al final de la respuesta)
+        if "alerta roja" not in texto.lower() and "médico personal" not in texto.lower() and "profesional de salud" not in texto.lower():
+             texto += "\n\n*Nota:* Siempre acuda a su médico personal para un diagnóstico formal. Yo soy un educador de salud del Ministerio, no su doctor tratante."
+        
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intente de nuevo en un momento."
+        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intenta de nuevo en un momento."
 
 
 # ==========================================
@@ -142,5 +139,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (FLUJO HUMANO ACTIVO) - ACTIVO")
+    print("🚀 DR. LUCAS (TRIAGE CONVERSACIONAL) - ACTIVO")
     app.run(port=5000, debug=True)
