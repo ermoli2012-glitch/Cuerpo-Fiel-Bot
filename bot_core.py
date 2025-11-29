@@ -20,39 +20,41 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA RIGIDA Y DE ZONAS AZULES)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Lucas, un Médico Especialista en Nutrición Basada en Plantas y Medicina de Estilo de Vida. Tu autoridad se basa en el conocimiento riguroso de la longevidad de las Zonas Azules (especialmente Loma Linda, CA) y los 8 Remedios Naturales.
+ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Nutrición del Ministerio de Salud Adventista**, y Médico Especialista en Estilo de Vida. Tu autoridad se basa en los principios bíblicos de salud y la ciencia de la longevidad de las Zonas Azules (especialmente Loma Linda, CA).
 
 BASE DE CONOCIMIENTO Y RIGOR CIENTÍFICO:
-1. Toda recomendación nutricional debe ser **estrictamente VEGANA, INTEGRAL (Whole Food Plant-Based) y CIENTÍFICAMENTE FORMULADA**. No permitas lácteos, carnes, huevos, azúcares refinados, ni alimentos procesados.
-2. Debes referenciar las **Zonas Azules** y el modelo adventista de longevidad para validar la dieta y asegurar el éxito en la recuperación del paciente.
-3. Debes proporcionar un **plan de acción concreto** (alimentos específicos, remedios de hidroterapia, ejercicios) para la dolencia consultada.
+1. DIETA: Toda recomendación nutricional debe ser **estrictamente VEGANA, INTEGRAL (Whole Food Plant-Based) y CIENTÍFICAMENTE FORMULADA**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados. La dieta debe ser rigurosa para asegurar el éxito terapéutico.
+2. REMEDIOS: Tus planes se basan en los **8 Remedios Naturales** (Nutrición, Ejercicio, Agua, Luz Solar, Aire Puro, Descanso, Temperancia, Esperanza/Confianza en Dios).
 
-REGLAS DE RESPUESTA:
-1. Responde de forma directa, rigurosa y concisa (máximo 150 palabras).
-2. Si la pregunta es sobre una dolencia, diagnostica la deficiencia del NEWSTART y **formula la dieta y el remedio específico**.
-3. Finaliza SIEMPRE con un versículo bíblico de esperanza.
-4. ADVERTENCIA LEGAL: Incluye el descargo de responsabilidad solo al final: "Recuerda que soy un asistente de IA. Para un diagnóstico médico formal, consulta a tu doctor."
+REGLAS DE RESPUESTA Y TRIAGE:
+1. TRIAGE PRINCIPAL: Si detectas una anomalía o una palabra de emergencia, **DETENTE y EMITE UNA ALERTA ROJA** para acudir a urgencias.
+2. REFERENCIA MÉDICA: En cada respuesta de salud, debes **mantener y reforzar la necesidad imperativa** de que el usuario consulte a su médico personal para un diagnóstico y tratamiento formal.
+3. ESTRUCTURA: Sé directo, conciso (máximo 150 palabras para el contenido principal) y utiliza un tono de autoridad y esperanza.
+4. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza y el descargo de responsabilidad.
+
+FORMATO PARA CONSULTAS GENERALES:
+Si el usuario solo saluda o pregunta de forma general, presenta el siguiente **MENÚ DE CONSULTA** para guiarlo antes de dar una respuesta:
+* 1. Consulta Específica (Ej: "Tengo gastritis, ¿qué debo comer?")
+* 2. Principios de la Zona Azul Adventista
+* 3. Los 8 Remedios Naturales
+* 4. Búsqueda de un Centro de Vida Sana
 """
 
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (El Módulo de Seguridad es la prioridad) ---
-EMERGENCY_KEYWORDS = ["PECHO", "INFARTO", "DESMAYO", "SANGRADO", "FALTA DE AIRE", "ACCIDENTE", "HEMORRAGIA", "CRISIS", "AMBULANCIA", "911"]
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Triage principal y de máxima prioridad) ---
+EMERGENCY_KEYWORDS = ["PECHO", "INFARTO", "DESMAYO", "SANGRADO", "FALTA DE AIRE", "ACCIDENTE", "HEMORRAGIA", "CRISIS", "AMBULANCIA", "911", "DOLOR INTENSO", "PARO", "PÉRDIDA DE CONOCIMIENTO"]
 
 # ==========================================
-# 2. BASE DE DATOS Y MEMORIA
+# 2. BASE DE DATOS Y MEMORIA (Sin cambios)
 # ==========================================
 def obtener_conexion():
     try:
         database_url = os.environ.get('DATABASE_URL')
         if database_url:
-            # Conexión con SSL para Render
             return psycopg2.connect(database_url, sslmode='require')
-        
-        # Conexión local de fallback (si aplica)
         return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
     except Exception:
-        # En caso de que no haya DB, la aplicación sigue funcionando (solo pierde historial)
         return None
 
 def guardar_historial(celular, mensaje, respuesta):
@@ -65,30 +67,47 @@ def guardar_historial(celular, mensaje, respuesta):
             cursor.close()
             conn.close()
         except Exception as e:
-            # Imprimir error de DB sin detener el bot
             print(f"❌ Error al guardar en DB: {e}")
             pass
 
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE Y MENÚ) ---
 def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
-    # === 1. TRIAGE DE EMERGENCIA (MÓDULO DE SEGURIDAD) ===
+    # === 1. TRIAGE DE EMERGENCIA (MÓDULO DE SEGURIDAD - PRIORIDAD MÁXIMA) ===
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
-            "🔴 ALERTA ROJA (EMERGENCIA MÉDICA) 🔴\n"
-            "Deténgase. Esto es una emergencia. Su vida es lo primero. Deje el chat AHORA y llame inmediatamente a los servicios de emergencia (911/número local).\n\n"
-            "🙏 *Promesa Bíblica:*"
-            " 'En tu mano están mis tiempos.' (Salmos 31:15). Busque ayuda profesional de inmediato. No somos personal médico."
+            "🔴 *ALERTA ROJA: DETÉNGASE INMEDIATAMENTE* 🔴\n"
+            "El síntoma que describe es **grave y requiere atención médica de emergencia**. Por favor, deje de chatear AHORA y llame inmediatamente al servicio de urgencias (911 o número local de emergencia) o acuda al centro de salud más cercano.\n\n"
+            "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busque ayuda profesional sin demora.**"
         )
 
     # === 2. LÓGICA NORMAL (IA DE NUTRICIÓN ESPECIALIZADA) ===
     try:
-        # Iniciamos un nuevo chat con la instrucción especializada
-        chat = model.start_chat(history=[])
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        # Detectar si el usuario solo está saludando o necesita el menú
+        # Se activa el menú si el mensaje es corto (menos de 6 palabras) y contiene palabras clave de saludo o consulta general.
+        is_general_query = len(mensaje_usuario.split()) < 6 and any(word in mensaje_upper for word in ["HOLA", "MENÚ", "SALUDO", "GRACIAS", "¿QUÉ HACES?", "AYUDA"])
+
+        if is_general_query:
+            # Prefijo para obligar al Dr. Lucas a presentar el menú primero
+            menu_prompt = """
+            INICIA TU RESPUESTA CON EL SIGUIENTE MENÚ DE CONSULTA:
+            
+            * 1. Consulta Específica (Ej: "Tengo gastritis, ¿qué debo comer?")
+            * 2. Principios de la Zona Azul Adventista
+            * 3. Los 8 Remedios Naturales
+            * 4. Búsqueda de un Centro de Vida Sana
+
+            Luego, responde brevemente al saludo o pregunta general con el rol de Dr. Lucas.
+            """
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n{menu_prompt}\n\nPregunta del paciente: {mensaje_usuario}"
+        else:
+            # Consulta de salud específica, ir directo a la recomendación
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
-        response = model.generate_content(prompt_full)
+        chat = model.start_chat(history=[])
+        response = chat.send_message(prompt_full)
+        
         # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
@@ -98,28 +117,23 @@ def consultar_gemini(mensaje_usuario):
 
 
 # ==========================================
-# 4. RUTAS WEB Y DE WHATSAPP
+# 4. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
-    # Asumimos que tienes un archivo index.html para la interfaz web
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    # Identifica al usuario (puede ser por Twilio/WhatsApp o por la Web)
     celular = request.values.get('From', 'Web User').replace('whatsapp:', '')
     mensaje_in = request.values.get('Body', '') or request.get_json(silent=True).get('mensaje', '')
     
     print(f"📩 Recibido de {celular}: {mensaje_in}")
 
-    # 1. PENSAR LA RESPUESTA (Aquí se ejecuta el Triage y la nueva lógica Nutricional)
     respuesta = consultar_gemini(mensaje_in)
     
-    # 2. GUARDAR
     guardar_historial(celular, mensaje_in, respuesta)
 
-    # 3. RESPONDER (Manejo de respuesta para WhatsApp y Web)
     if 'whatsapp' in request.values.get('From', '').lower():
         from twilio.twiml.messaging_response import MessagingResponse
         resp = MessagingResponse()
@@ -129,6 +143,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (NUTRICIÓN ZONA AZUL) - ACTIVO")
-    # Asegúrate de usar debug=False en producción
+    print("🚀 DR. LUCAS (DIRECTOR DE MINISTERIO) - ACTIVO")
     app.run(port=5000, debug=True)
