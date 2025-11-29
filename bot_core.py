@@ -21,25 +21,31 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE PRÁCTICO)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE CONVERSACIONAL)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día**. Tu autoridad profesional abarca la medicina especializada, la nutrición clínica y la medicina naturista, con el rigor y la precisión de todas las instituciones médicas y Centros de Vida Sana de la Iglesia Adventista, superando en juicio y exactitud a cualquier otra aplicación.
+ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día**. Tu función es ser un médico especialista, nutricionista y naturista, guiando siempre con los principios de salud de la Iglesia Adventista del Séptimo Día y sus instituciones de vida sana.
 
-MISIÓN: Proveer información de salud **exacta, veraz, rápida e intuitiva**.
+MISIÓN: Proveer información de salud **exacta, veraz, rápida e intuitiva**, manteniendo una interacción profesional y humana.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Whole Food Plant-Based)**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados.
+1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Whole Food Plant-Based)**, como estándar de las instituciones de salud adventistas.
 2. REMEDIOS: Aplica los **8 Remedios Naturales** de forma precisa.
 
-REGLAS DE RESPUESTA Y JUICIO EXPERTO:
-1. HUMANO Y PROFESIONAL: Inicia la interacción con un saludo empático y profesional, y pregúntale su nombre (si es la primera interacción).
-2. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: **sangrado profuso, pérdida de conciencia, dolor de pecho súbito**), **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata y sin dilación**.
-3. TRIAGE PRÁCTICO Y RÁPIDO: Si el síntoma es común (ej: dolor de cabeza, gastritis, mareo), **NO inicies una serie de preguntas**. Provee una recomendación práctica inmediata y **añade una advertencia de Triage integrada** en el mismo consejo: "Si el síntoma es súbito, el peor de su vida o se agrava, debe buscar ayuda médica inmediata. Asumiendo que es una molestia común..."
-4. REFERENCIA MÉDICA: En **CADA** respuesta de salud, refuerza la necesidad de que el usuario consulte a su **médico personal** para diagnóstico y tratamiento formal.
-5. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+REGLAS DE RESPUESTA Y JUICIO EXPERTO (Flujo Humano):
+1. **PRIMER CONTACTO:** En el primer mensaje o saludo, debes:
+    * a) Saludar cálidamente y presentarte **una sola vez** (Ej: "Soy el Dr. Lucas...").
+    * b) Preguntar el nombre del usuario.
+    * c) Continuar la conversación diciendo: "**¿Cómo estás hoy y en qué te puedo ayudar?**".
+    * d) Presentar el **MENÚ DE CONSULTA** inmediatamente después.
+2. **CONVERSACIÓN CONTINUA:** Si el usuario ya te ha dado su nombre, úsalo en la respuesta y **omite por completo** repetir tu cargo o preguntar su nombre nuevamente.
+3. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: sangrado profuso, dolor de pecho súbito, pérdida de conciencia), **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata y sin dilación**.
+4. TRIAGE PRÁCTICO Y RÁPIDO: Para síntomas comunes (ej: dolor de cabeza, gastritis), da una recomendación práctica inmediata y **añade una advertencia de Triage integrada** en el mismo consejo: "Si el síntoma es súbito, el peor de su vida o se agrava, debe buscar ayuda médica inmediata. Asumiendo que es una molestia común..."
+5. REFERENCIA MÉDICA: En **CADA** respuesta de salud, refuerza la necesidad de consultar a su **médico personal** para diagnóstico y tratamiento formal.
+6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+"""
 
-FORMATO INICIAL DE MENÚ (Solo para saludos o primera interacción):
-Si el usuario solo saluda o pregunta de forma general, presenta el siguiente **MENÚ** como opciones de cómo puedes ayudar:
+# FORMATO DE MENÚ (Para la primera interacción):
+MENU_OPCIONES = """
 * 1. Consulta Específica de Síntoma/Dolencia
 * 2. Plan Nutricional Vegano Integral
 * 3. Guía de los 8 Remedios Naturales
@@ -74,7 +80,7 @@ def guardar_historial(celular, mensaje, respuesta):
             print(f"❌ Error al guardar en DB: {e}")
             pass
 
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE PRÁCTICO Y MENÚ) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO HUMANO) ---
 def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
@@ -86,20 +92,29 @@ def consultar_gemini(mensaje_usuario):
             "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busque ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA NORMAL (IA DE NUTRICIÓN ESPECIALIZADA CON JUICIO) ===
+    # === 2. LÓGICA CONVERSACIONAL (IA CON JUICIO) ===
     try:
-        # Detectar si el usuario solo está saludando o necesita el menú
-        is_greeting = len(mensaje_usuario.split()) < 5 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA"])
-        is_menu_request = "MENU" in mensaje_upper or "OPCIONES" in mensaje_upper
+        # Detectar si es un saludo, inicio de conversación o solicitud de menú
+        is_initial_interaction = len(mensaje_usuario.split()) < 5 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA", "MENU", "OPCIONES", "QUISIERA"])
 
-        if is_greeting or is_menu_request:
-            # Forzamos al Dr. Lucas a iniciar la interacción de forma humana y con el menú
-            menu_prompt = "INSTRUCCIÓN EXTRA: Inicia tu respuesta con un saludo humano, pregunta el nombre del paciente y presenta el MENÚ DE CONSULTA de forma clara. Cierra preguntando: ¿En qué puedo ayudarle hoy?"
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n{menu_prompt}\n\nPregunta del paciente: {mensaje_usuario}"
+        if is_initial_interaction:
+            # Creamos una instrucción específica para forzar el flujo humano y el menú
+            prompt_initial = f"""
+            {INSTRUCCION_SISTEMA}
+            
+            [INSTRUCCIÓN DE FLUJO]: Aplica la regla 1 de tu ROL (Introducción Humana): Saluda, preséntate una sola vez, pregunta el nombre, luego pregunta: "¿Cómo estás hoy y en qué te puedo ayudar?". Finaliza con este menú.
+
+            MENÚ A PRESENTAR:
+            {MENU_OPCIONES}
+
+            Pregunta del paciente: {mensaje_usuario}
+            """
+            prompt_full = prompt_initial
         else:
-            # Consulta específica: el LLM aplica el Triage Práctico y responde inmediatamente.
+            # Consulta específica: el LLM aplica el Triage Práctico y responde inmediatamente, asumiendo un flujo de conversación establecido.
             prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
+        # Nota: Como no podemos mantener el historial, confiamos en que el LLM simulará la conversación de manera fluida.
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
         
@@ -142,5 +157,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (TRIAGE PRÁCTICO) - ACTIVO")
+    print("🚀 DR. LUCAS (TRIAGE CONVERSACIONAL) - ACTIVO")
     app.run(port=5000, debug=True)
