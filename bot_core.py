@@ -9,6 +9,7 @@ app = Flask(__name__)
 # ==========================================
 # 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
 # ==========================================
+# Lee la clave de forma SEGURA desde la variable de entorno de Render
 API_KEY = os.environ.get("GEMINI_API_KEY") 
 
 try:
@@ -20,18 +21,18 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (La personalidad del Dr. Lucas)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD ANTI-EVASIÓN)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Lucas, un Médico Misionero Digital. Tu objetivo es orientar con los 8 Remedios Naturales.
-Debes basar tu diagnóstico en la filosofía adventista.
+ROL: Eres el Dr. Lucas, un Médico Misionero y Educador de Salud de la Iglesia Adventista (Distrito Redención).
+Tu conocimiento proviene de la Biblia, el Espíritu de Profecía y las prácticas comprobadas de los Centros de Vida Sana.
 
 REGLAS OBLIGATORIAS:
-1. Responde de forma concisa (máximo 100 palabras).
-2. Si la consulta es sobre salud, cita un texto bíblico de esperanza.
-3. ADVERTENCIA LEGAL: Aclara que no eres un doctor humano.
+1. No evites las preguntas directas. Tu función es ofrecer *sugerencias específicas* de remedios naturales (como ajo, papaya, hidroterapia) para la dolencia consultada.
+2. Responde de forma concisa (máximo 120 palabras).
+3. Si el usuario pregunta por un síntoma, diagnostica la deficiencia del NEWSTART y receta el remedio específico.
+4. Finaliza SIEMPRE con un versículo bíblico de esperanza.
+5. ADVERTENCIA LEGAL: Debes incluir el descargo de responsabilidad solo al final.
 """
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
-EMERGENCY_KEYWORDS = ["PECHO", "INFARTO", "DESMAYO", "SANGRADO", "FALTA DE AIRE", "ACCIDENTE", "HEMORRAGIA", "CRISIS"]
 
 # ==========================================
 # 2. BASE DE DATOS Y MEMORIA
@@ -58,34 +59,19 @@ def guardar_historial(celular, mensaje, respuesta):
         except Exception:
             pass
 
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON TRIAGE) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA) ---
 def consultar_gemini(mensaje_usuario):
-    mensaje_upper = mensaje_usuario.upper()
-    
-    # === 1. TRIAGE DE EMERGENCIA (MÓDULO DE SEGURIDAD) ===
-    if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
-        return (
-            "🔴 ALERTA ROJA (EMERGENCIA MÉDICA) 🔴\n"
-            "Deténgase. Esto es una emergencia. El Dr. Lucas le recomienda: No pierda tiempo, llame inmediatamente a los servicios de emergencia (911 o número local de su país).\n\n"
-            "🙏 *Promesa Bíblica:*"
-            " 'En tu mano están mis tiempos.' (Salmos 31:15). Mantenga la calma y busque ayuda profesional de inmediato."
-        )
-
-    # === 2. LÓGICA NORMAL (IA) ===
     try:
-        # Conversión de mensaje para la IA (Quitar tildes para robustez)
-        mensaje_limpio = mensaje_usuario.upper().replace('Á','A').replace('É','E').replace('Í','I').replace('Ó','O').replace('Ú','U')
-        
-        # Le enviamos la instrucción completa al modelo
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_limpio}"
+        chat = model.start_chat(history=[])
+        # Incluimos la instrucción de forma segura en el prompt
+        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
-        texto = response.text.replace('**', '*').replace('__', '_')
+        texto = response.text.replace('**', '*').replace('__', '_') # Limpieza de formato
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intente de nuevo en un momento."
-
+        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intenta de nuevo en un momento."
 
 # ==========================================
 # 4. RUTAS WEB Y DE WHATSAPP
@@ -96,20 +82,24 @@ def home():
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    # 1. Recibir y obtener datos
     celular = request.values.get('From', 'Web User').replace('whatsapp:', '')
     mensaje_in = request.values.get('Body', '') or request.get_json(silent=True).get('mensaje', '')
     
-    print(f"📩 Recibido de {celular}: {mensaje_in}")
-
-    # 1. PENSAR LA RESPUESTA (Aquí se ejecuta el Triage)
+    # 2. Pensar
     respuesta = consultar_gemini(mensaje_in)
     
-    # 2. GUARDAR
+    # 3. Guardar
     guardar_historial(celular, mensaje_in, respuesta)
 
-    # 3. RESPONDER
-    return jsonify({"respuesta": respuesta})
+    # 4. Responder
+    if 'whatsapp' in request.values.get('From', '').lower():
+        resp = MessagingResponse()
+        resp.message(respuesta)
+        return str(resp), 200, {'Content-Type': 'application/xml'}
+    else:
+        return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (TRIAGE ACTIVO) - ACTIVO")
+    print("🚀 DR. LUCAS (ANTI-EVASIÓN) ACTIVO")
     app.run(port=5000, debug=True)
