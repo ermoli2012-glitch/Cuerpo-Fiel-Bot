@@ -16,32 +16,27 @@ try:
         print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
         
     genai.configure(api_key=API_KEY)
-    # Usamos el modelo más rápido y eficiente para chat
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025') 
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD NATURISTA, DIRECTOR DE MINISTERIO Y TRIAGE CONVERSACIONAL)
+# INSTRUCCIÓN MAESTRA (JUICIO CLÍNICO, NUTRICIÓN RIGUROSA Y FLUJO HUMANO)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día**. Tu función es ser un médico especialista, nutricionista y naturista, guiando siempre con los principios de salud de la Iglesia Adventista del Séptimo Día y sus instituciones de vida sana.
+ROL: Eres el **Dr. Lucas**, Guía de Salud Integral, Nutricionista, y Especialista en Estilo de Vida del Ministerio de Salud Adventista. Tu función es ser un **consultor profesional, rápido y humano**.
 
-MISIÓN: Proveer información de salud **exacta, veraz, rápida e intuitiva**, manteniendo una interacción profesional y humana.
+MISIÓN: Proveer información de salud exacta, veraz, rápida e intuitiva, siempre bajo los principios de salud de la Iglesia Adventista del Séptimo Día.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Whole Food Plant-Based)**, como estándar de las instituciones de salud adventistas.
-2. REMEDIOS: Aplica los **8 Remedios Naturales** de forma precisa.
+1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados.
+2. REMEDIOS: Aplica los 8 Remedios Naturales.
+3. ESTRUCTURA VISUAL: Utiliza *negritas*, saltos de línea y emojis de forma EXTENSIVA para que el mensaje sea intuitivo y no parezca un bloque de texto.
 
-REGLAS DE RESPUESTA Y JUICIO EXPERTO (Flujo Humano):
-1. **PRIMER CONTACTO:** En el primer mensaje o saludo, debes:
-    * a) Saludar cálidamente y presentarte **una sola vez** (Ej: "Soy el Dr. Lucas...").
-    * b) Preguntar el nombre del usuario.
-    * c) Continuar la conversación diciendo: "**¿Cómo estás hoy y en qué te puedo ayudar?**".
-    * d) Presentar el **MENÚ DE CONSULTA** inmediatamente después.
-2. **CONVERSACIÓN CONTINUA:** Si el usuario ya te ha dado su nombre, úsalo en la respuesta y **omite por completo** repetir tu cargo o preguntar su nombre nuevamente.
-3. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: sangrado profuso, dolor de pecho súbito, pérdida de conciencia), **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata y sin dilación**.
-4. TRIAGE PRÁCTICO Y RÁPIDO: Para síntomas comunes (ej: dolor de cabeza, gastritis), da una recomendación práctica inmediata y **añade una advertencia de Triage integrada** en el mismo consejo: "Si el síntoma es súbito, el peor de su vida o se agrava, debe buscar ayuda médica inmediata. Asumiendo que es una molestia común..."
-5. REFERENCIA MÉDICA: En **CADA** respuesta de salud, refuerza la necesidad de consultar a su **médico personal** para diagnóstico y tratamiento formal.
-6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+REGLAS DE FLUJO Y TRIAGE:
+1. **PRESENTACIÓN INICIAL (Solo en Saludos):** Si el mensaje es un saludo o una consulta general, usa esta introducción corta: "Soy el Dr. Lucas, y seré tu guía. Para un plan más humano, ¿cuál es tu nombre? ¿Cómo estás hoy y en qué te puedo ayudar?". Luego presenta el MENÚ DE CONSULTA.
+2. **OMISIÓN INTELIGENTE:** Si la consulta es específica de salud (ej: 'tengo dolor de cabeza'), OMITE la presentación larga y el menú. Ve directamente al diagnóstico/remedio.
+3. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: sangrado profuso, pérdida de conciencia, dolor de pecho súbito), **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata**.
+4. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de ver a tu médico personal.
+5. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 """
 
 # FORMATO DE MENÚ (Para la primera interacción):
@@ -49,11 +44,8 @@ MENU_OPCIONES = """
 * 1. Consulta Específica de Síntoma/Dolencia
 * 2. Plan Nutricional Vegano Integral
 * 3. Guía de los 8 Remedios Naturales
-* 4. Ubicar un Centro de Vida Sana Adventista
+* 4. Ubicar un Centro de Vida Sana
 """
-
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Activadores de Alerta Roja INMEDIATA) ---
-EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
 # 2. BASE DE DATOS Y MEMORIA (Sin cambios)
@@ -76,8 +68,7 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception as e:
-            print(f"❌ Error al guardar en DB: {e}")
+        except Exception:
             pass
 
 # --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO HUMANO) ---
@@ -88,47 +79,40 @@ def consultar_gemini(mensaje_usuario):
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETÉNGASE INMEDIATAMENTE* 🔴\n"
-            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato al servicio de urgencias (911/número local) o acuda a la sala de emergencias más cercana. Su vida es la prioridad.\n\n"
+            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato a los servicios de urgencias (911/número local). Su vida es la prioridad.\n\n"
             "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busque ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA CONVERSACIONAL (IA CON JUICIO) ===
+    # === 2. LÓGICA CONVERSACIONAL Y MENU INTUITIVO ===
     try:
-        # Detectar si es un saludo, inicio de conversación o solicitud de menú
-        is_initial_interaction = len(mensaje_usuario.split()) < 5 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA", "MENU", "OPCIONES", "QUISIERA"])
+        # Check para activar la presentación de primer contacto
+        is_greeting = len(mensaje_usuario.split()) < 5 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA", "MENU", "OPCIONES", "QUISIERA"])
 
-        if is_initial_interaction:
-            # Creamos una instrucción específica para forzar el flujo humano y el menú
-            prompt_initial = f"""
-            {INSTRUCCION_SISTEMA}
-            
-            [INSTRUCCIÓN DE FLUJO]: Aplica la regla 1 de tu ROL (Introducción Humana): Saluda, preséntate una sola vez, pregunta el nombre, luego pregunta: "¿Cómo estás hoy y en qué te puedo ayudar?". Finaliza con este menú.
+        if is_greeting:
+            # Si es un saludo, enviamos la presentación completa con el menú
+            presentacion_prompt = f"""
+            INSTRUCCIÓN ESPECIAL: Aplica la Regla 1 de tu ROL: Saluda, pregunta el nombre y el estado, y presenta el MENÚ DE CONSULTA.
 
-            MENÚ A PRESENTAR:
+            MENÚ:
             {MENU_OPCIONES}
 
             Pregunta del paciente: {mensaje_usuario}
             """
-            prompt_full = prompt_initial
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_prompt}"
         else:
-            # Consulta específica: el LLM aplica el Triage Práctico y responde inmediatamente, asumiendo un flujo de conversación establecido.
+            # Si es una consulta específica, la INSTRUCCION_SISTEMA ya obliga a ir directo al diagnóstico.
             prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
-        # Nota: Como no podemos mantener el historial, confiamos en que el LLM simulará la conversación de manera fluida.
+        # Llamada a Gemini
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
         
         # Limpieza de formato
         texto = response.text.replace('**', '*').replace('__', '_')
-        
-        # Aseguramos el descargo de responsabilidad (seguridad)
-        if "alerta roja" not in texto.lower() and "médico personal" not in texto.lower() and "profesional de salud" not in texto.lower():
-             texto += "\n\n*Nota:* Siempre acuda a su médico personal para un diagnóstico formal. Yo soy un educador de salud del Ministerio, no su doctor tratante."
-        
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intenta de nuevo en un momento."
+        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intente de nuevo en un momento."
 
 
 # ==========================================
@@ -150,6 +134,7 @@ def chat():
     guardar_historial(celular, mensaje_in, respuesta)
 
     if 'whatsapp' in request.values.get('From', '').lower():
+        from twilio.twiml.messaging_response import MessagingResponse
         resp = MessagingResponse()
         resp.message(respuesta)
         return str(resp), 200, {'Content-Type': 'application/xml'}
@@ -157,5 +142,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (TRIAGE CONVERSACIONAL) - ACTIVO")
+    print("🚀 DR. LUCAS (FLUJO HUMANO ACTIVO) - ACTIVO")
     app.run(port=5000, debug=True)
