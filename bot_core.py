@@ -2,6 +2,7 @@ import os
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
+from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
@@ -15,32 +16,29 @@ try:
         print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
         
     genai.configure(api_key=API_KEY)
-    # Modelo para chat
+    # Usamos el modelo más rápido y eficiente para chat
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025') 
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (EL ALMA DEL DR. LUCAS)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD FINAL: DIRECTA Y ESPECIALIZADA)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Lucas, el Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día. Tu función es ser un médico especialista, nutricionista y naturista. **Tu objetivo es la empatía: que el paciente se sienta cómodo, escuchado y seguro de la información que le proporcionas, como en una consulta personal.**
-
-MISIÓN: Proveer información de salud **exacta, veraz, rápida e intuitiva**, manteniendo una interacción profesional y humana, bajo el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
+ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. ENFOQUE HOLÍSTICO: Tu diagnóstico debe ser integral, considerando los aspectos Físico, Mental y Espiritual (como se enseña en la Salud Integral Adventista).
-2. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados.
-3. JUICIO EXPERTO: Tus consejos son comparables en rigor a las guías de los Centros de Vida Sana de la Iglesia Adventista.
+1. ROL: Médico Especialista, Nutricionista y Naturista.
+2. DIETA: Estrictamente VEGANA, INTEGRAL y BASADA EN PLANTAS.
+3. TRIAGE: Mantén la regla de Alerta Roja si detectas emergencia extrema.
 
-REGLAS DE RESPUESTA Y JUICIO EXPERTO (Flujo Conversacional):
-1. **TONO Y TUTEO:** Debes usar siempre el pronombre "TÚ" y un tono cálido, humano y alentador.
-2. **PRESENTACIÓN ÚNICA:** Solo en el primer mensaje de saludo, preséntate brevemente con tu título completo. Después, omite el título y actúa como un médico en un diálogo continuo.
-3. **PRIORIDAD DEL DIAGNÓSTICO:** Si el usuario pregunta un síntoma, OMITE el menú y ve **DIRECTO al diagnóstico,** estructurando tu respuesta en tres partes claras: *Análisis Clínico, Prescripción Natural, y Promesa Bíblica.*
-4. ALERTA ROJA (Emergencia): Si la consulta es una emergencia clara, DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata.
-5. REFERENCIA MÉDICA: En **CADA** respuesta de salud, refuerza la necesidad imperativa de consultar a tu **médico personal** para diagnóstico y tratamiento formal.
-6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+REGLAS DE RESPUESTA Y FLUJO FINAL:
+1. INTRODUCCIÓN: En cada respuesta, inicia con un saludo breve y tu rol: "Saludos. Soy el Dr. Caleb, tu guía de salud..." (Omitiendo los cargos largos).
+2. FLUJO: **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
+3. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado (ej: Estrés -> Reposo; Dieta -> Cuerpo Templo).
+4. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
+5. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
 """
 
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Se mantiene el chequeo de seguridad) ---
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
@@ -80,31 +78,20 @@ def consultar_gemini(mensaje_usuario):
             "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA CONVERSACIONAL Y JUICIO EXPERTO ===
+    # === 2. LÓGICA NORMAL (IA CON JUICIO) ===
     try:
-        # Check para activar la presentación de primer contacto
-        is_initial_greeting = len(mensaje_usuario.split()) < 4 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "SALUDO", "GRACIAS"])
-
-        if is_initial_greeting:
-            # Si es el primer saludo, forzamos la presentación completa (REGLA 1)
-            presentacion_protocolo = """
-            INSTRUCCIÓN ESPECIAL: Aplica la REGLA 1: Preséntate con tu título completo (solo una vez), pregunta el nombre del paciente, y luego pregunta: "¿Cómo estás hoy y en qué te puedo ayudar?". Finaliza con una lista de las 4 opciones de consulta.
-            """
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_protocolo}\n\nPregunta del paciente: {mensaje_usuario}"
-        else:
-            # Si es una consulta específica, la IA aplica el juicio y responde directamente (REGLA 3)
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        # La IA va directo a la respuesta con la personalidad simplificada (REGLA 2)
+        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
-        # Llamada a Gemini
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
         
-        # Limpieza de formato
+        # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intenta de nuevo en un momento."
+        return "⚠️ Lo siento, Dr. Caleb está en una consulta crítica. Intenta de nuevo en un momento."
 
 
 # ==========================================
@@ -134,5 +121,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (JUICIO EMPÁTICO) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO DIRECTO FINAL) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
