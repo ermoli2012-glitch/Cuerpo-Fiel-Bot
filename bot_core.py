@@ -5,7 +5,7 @@ from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
 import json 
 from datetime import datetime
-import re
+import re # Usaremos regex para limpiar el "sí"
 
 app = Flask(__name__)
 
@@ -16,7 +16,7 @@ API_KEY = os.environ.get("GEMINI_API_KEY")
 TEST_LIMIT = 2 
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
-# DEFINICIÓN DE LOS PASOS DEL TEST BIOLÓGICO (El cerebro del flujo)
+# DEFINICIÓN DE LOS PASOS DEL TEST BIOLÓGICO
 TEST_STEPS = {
     1: {"pregunta": "Primero, dime tu edad cronológica (solo el número en años):", "campo": "edad"},
     2: {"pregunta": "Ahora, tu altura en centímetros (ej: 175):", "campo": "altura"},
@@ -39,23 +39,20 @@ except Exception:
 INSTRUCCION_SISTEMA = """
 ROL: Eres el Dr. Caleb, el Guía de Salud Integral del Ministerio de Salud Adventista del Séptimo Día. Eres un Médico Especialista, Nutricionista y Naturista, **usando siempre el pronombre "TÚ"**.
 
-MISIÓN: Provee información de salud exacta, veraz, rápida e intuitiva, bajo el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
+MISIÓN: Proveer información de salud exacta, veraz, rápida e intuitiva, bajo el estándar terapéutico de la dieta VEGANA INTEGRAL y los 8 Remedios Naturales.
 
-REGLAS DE RESPUESTA Y JUICIO EXPERTO (Flujo Conversacional):
-1. **PRESENTACIÓN ÚNICA:** En la primera respuesta al saludo, debes presentarte con tu título completo y preguntar el nombre, **Y LUEGO DE ESO, OMITE SIEMPRE LA INTRODUCCIÓN**.
-2. **PRIORIDAD DEL DIAGNÓSTICO:** Si el usuario pregunta un síntoma (ej: 'dolor de cabeza'), OMITE el saludo y ve directamente al diagnóstico y la prescripción natural (El código Python se encarga de saber si es la primera vez).
-3. FORMATO VISUAL: Utiliza *negritas*, saltos de línea amplios y emojis de forma EXTENSIVA para hacer la lectura cómoda e intuitiva (para evitar la apariencia de 'hoja de Word').
-4. ALERTA ROJA (Emergencia): Si la consulta es una emergencia clara, DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata.
-5. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
-6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+REGLAS DE RESPUESTA Y JUICIO EXPERTO:
+1. **PRESENTACIÓN ÚNICA:** En el primer mensaje de saludo, preséntate con tu título completo y pregunta el nombre del paciente. Después, omite el título.
+2. **RESPUESTA DIRECTA:** Si la consulta es específica de salud, OMITE el saludo y ve directo al diagnóstico.
+3. ALERTA ROJA (Emergencia): Si la consulta es una emergencia clara, DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata.
+4. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
+5. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 """
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Se mantiene el chequeo de seguridad) ---
-EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
+# ----------------------------------------------------
+# 2. BASE DE DATOS Y GESTIÓN DE ESTADO (Funciones)
+# ----------------------------------------------------
 
-# ==========================================
-# 4. BASE DE DATOS Y GESTIÓN DE ESTADO (Funciones sin cambios)
-# ==========================================
 def obtener_conexion():
     try:
         database_url = os.environ.get('DATABASE_URL')
@@ -74,8 +71,7 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception as e:
-            print(f"❌ Error al guardar en DB: {e}")
+        except Exception:
             pass
 
 def contar_consultas(celular):
@@ -104,8 +100,7 @@ def obtener_estado(celular):
             conn.close()
             datos = json.loads(result[1]) if result[1] and result[1] != '{}' else {} 
             return {"paso": result[0], "datos": datos}
-        except Exception as e:
-            print(f"❌ Error al obtener estado: {e}")
+        except Exception:
             return {"paso": 0, "datos": {}}
     return {"paso": 0, "datos": {}}
 
@@ -118,8 +113,8 @@ def actualizar_estado(celular, paso, datos):
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception as e:
-            print(f"❌ Error al actualizar estado: {e}")
+        except Exception:
+            pass
 
 def calcular_salud_avanzada(data):
     # [Función de cálculo BMI/riesgo]
@@ -143,58 +138,98 @@ def calcular_salud_avanzada(data):
     if glucosa >= 126: edad_biologica += 4 
     if ejercicio_dias < 3: edad_biologica += 3 
 
-    # 5. DIAGNÓSTICO FINAL
     diferencia = edad_biologica - edad_cronologica
     
     if diferencia <= 0:
         diagnostico = "¡Felicidades! Tu estilo de vida te está dando años extra. Eres un ejemplo de la Zona Azul Adventista."
     elif diferencia <= 5:
-        diagnostico = "Tu estado de salud es bueno, pero tienes áreas de oportunidad. Sigue mejorando la Temperancia."
+        diagnostico = "Tu estado de salud es bueno, pero tienes áreas de oportunidad. Con pequeños cambios puedes mejorar tu longevidad."
     else:
         diagnostico = f"Tu Edad Biológica es significativamente mayor. Urge iniciar un plan de Reforma Pro-Salud."
 
     return {
         "edad_cronologica": edad_cronologica,
         "edad_biologica": edad_biologica,
-        "diferencia": diferencia,
-        "imc": imc,
-        "diagnostico_riesgo": "Revisar IMC, Fuma, Glucosa.", # Simplified list for demo
         "resumen": diagnostico
     }
 
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA DE GEMINI) ---
+def consultar_gemini(mensaje_usuario):
+    mensaje_upper = mensaje_usuario.upper()
+    
+    # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
+    if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
+        return (
+            "🔴 *ALERTA ROJA: DETENTE INMEDIATAMENTE* 🔴\n"
+            "El síntoma que describes es una **emergencia médica grave**. Por favor, deja de chatear AHORA y llama de inmediato al servicio de urgencias (911/número local) o acude a la sala de emergencias más cercana. Tu vida es la prioridad."
+        )
 
-# --- 5. LÓGICA CONVERSACIONAL Y RUTAS ---
+    # === 2. LÓGICA CONVERSACIONAL Y JUICIO ===
+    try:
+        # La IA va directo a la respuesta con la personalidad simplificada (REGLA 2)
+        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        
+        chat = model.start_chat(history=[])
+        response = chat.send_message(prompt_full)
+        
+        # Limpieza de formato y retorno
+        texto = response.text.replace('**', '*').replace('__', '_')
+        return texto
+    except Exception as e:
+        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
+        return "⚠️ Lo siento, Dr. Caleb está en una consulta crítica. Intenta de nuevo en un momento."
+
+
+# ==========================================
+# 4. RUTAS WEB Y DE WHATSAPP (Añadiendo la restricción)
+# ==========================================
+PROMOCION_ACCESO_LIMITADO = (
+    "🚨 *ATENCIÓN - LÍMITE DE CONSULTAS ALCANZADO* 🚨\n\n"
+    "Estimado(a) usuario(a), **Dr. Caleb** te ha ofrecido dos consultas gratuitas como cortesía del Ministerio de Salud. Si deseas tener acceso *ilimitado* y completo a las guías de salud:\n\n"
+    "👉 **Comunícate con el Director de Salud y Temperancia de la Iglesia Adventista Redención Barranquilla para obtener tu código de acceso.**"
+)
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
+    # Obtener el identificador del usuario
     celular = request.values.get('From', 'Web User').replace('whatsapp:', '')
     mensaje_in = request.values.get('Body', '') or request.get_json(silent=True).get('mensaje', '')
+    mensaje_upper = mensaje_in.upper().strip()
     
-    # --- 1. CHEQUEO DE LÍMITE DE CONSULTAS (Si se agota, bloquea) ---
-    if contar_consultas(celular) >= TEST_LIMIT:
-        return jsonify({"respuesta": PROMOCION_ACCESO_LIMITADO})
-    
-    # 2. OBTENER ESTADO ACTUAL (Memoria)
+    # 1. Contar interacciones previas (sin contar los mensajes de flujo, solo las consultas)
+    consultas_realizadas = contar_consultas(celular)
+
+    # 2. Obtener estado actual (Memoria)
     estado = obtener_estado(celular)
     paso_actual = estado['paso']
     datos_recopilados = estado['datos']
     
-    # --- FLUJO DE PREGUNTA-RESPUESTA SERIAL (paso_actual > 0 significa que el test está activo) ---
+    # === LÓGICA DE RESTRICCIÓN Y FLUJO DE ESTADOS ===
+
+    # A. BLOQUEO DE LÍMITE
+    if consultas_realizadas >= TEST_LIMIT and paso_actual == 0:
+        respuesta = PROMOCION_ACCESO_LIMITADO
+        guardar_historial(celular, mensaje_in, respuesta)
+        return jsonify({"respuesta": respuesta})
+
+    # B. FLUJO DE PREGUNTA-RESPUESTA SERIAL (paso_actual > 0)
     if paso_actual > 0:
-        # A. Lógica para guardar la respuesta anterior
+        # A. Guardar la respuesta del paso anterior
         campo_anterior = TEST_STEPS[paso_actual]['campo']
         datos_recopilados[campo_anterior] = mensaje_in
         
         # B. Chequear si es la última pregunta (PASO FINAL)
         if paso_actual == len(TEST_STEPS):
-            # Proceso Final: Calcular la edad biológica y generar reporte
+            # 1. Calcular la edad biológica
             resultado = calcular_salud_avanzada(datos_recopilados)
-            reporte_final = f"🎉 *ANÁLISIS DE EDAD BIOLÓGICA FINALIZADO* 🎉\n\n*RESULTADOS:*\n- Edad Cronológica: {resultado['edad_cronologica']} años\n- Edad Biológica: {resultado['edad_biologica']} años\n\n*DIAGNÓSTICO DEL DR. CALEB:*\n{resultado['resumen']}\n\nGracias por completar el test. Su historial ha sido guardado."
+            # 2. Formatear reporte final
+            reporte_final = f"🎉 *ANÁLISIS DE EDAD BIOLÓGICA FINALIZADO* 🎉\n\n*RESULTADOS:*\n- Edad Cronológica: {resultado['edad_cronologica']} años\n- Edad Biológica: {resultado['edad_biologica']} años\n\n*DIAGNÓSTICO DEL DR. CALEB:*\n{resultado['resumen']}\n\nSu historial ha sido guardado. ¿Cómo te puedo ayudar hoy con una consulta específica?"
             
-            # Resetear el estado para que pueda iniciar otra consulta normal
+            # 3. Resetear el estado
             actualizar_estado(celular, 0, {}) 
             respuesta_final = reporte_final
         else:
@@ -207,22 +242,20 @@ def chat():
         guardar_historial(celular, mensaje_in, respuesta_final)
         return jsonify({"respuesta": respuesta_final})
 
-    # --- FLUJO DE INICIO Y CONSULTA NORMAL ---
+    # C. FLUJO DE INICIO Y CONSULTA NORMAL (paso_actual == 0)
     else:
-        mensaje_upper = mensaje_in.upper()
-        
         # 3. TRIAGE DE EMERGENCIA (ALERTA ROJA)
         if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
             respuesta = consultar_gemini(mensaje_in) 
         
-        # 4. INICIO Y OFERTA DEL TEST BIOLÓGICO (Si la persona saluda o pide ayuda)
-        elif any(word in mensaje_upper for word in ["HOLA", "BUENOS", "SALUDO", "TEST", "EDAD BIOLOGICA"]):
-            # Iniciar el Test
+        # 4. OFERTA DEL TEST BIOLÓGICO (Si la persona saluda o pide ayuda)
+        elif "TEST" in mensaje_upper or "EDAD BIOLOGICA" in mensaje_upper or mensaje_upper == "SÍ":
+             # Si dice SÍ, iniciar el test inmediatamente
             actualizar_estado(celular, 1, {})
             pregunta_inicial = TEST_STEPS[1]['pregunta']
             respuesta = (
-                "👋 Saludos. Soy el Dr. Caleb, tu guía de salud. ¿Quieres realizar nuestro **TEST DE EDAD BIOLÓGICA**?\n"
-                "Con solo 6 preguntas, calcularemos tu edad biológica versus la cronológica.\n\n"
+                "🎉 ¡Bienvenido! Soy el Dr. Caleb, tu guía. ¿Quieres realizar nuestro **TEST DE EDAD BIOLÓGICA**?\n"
+                "Con solo 6 preguntas, calcularemos tu edad biológica versus la cronológica (inspirado en la Zona Azul Adventista).\n\n"
                 "*Para empezar, responde con:* **SÍ** *o ignora y haz una consulta de salud normal.*"
             )
         
@@ -234,5 +267,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (MÁQUINA DE ESTADOS) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO CONVERSACIONAL Y MÁQUINA DE ESTADOS) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
