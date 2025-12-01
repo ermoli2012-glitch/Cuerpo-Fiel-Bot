@@ -2,7 +2,6 @@ import os
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
-from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
@@ -20,32 +19,27 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (JUICIO CLÍNICO, NUTRICIÓN RIGUROSA Y FLUJO HUMANO)
+# INSTRUCCIÓN MAESTRA (JUICIO CLÍNICO Y RIGOR PROFESIONAL)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el **Dr. Lucas**, Guía de Salud Integral, Nutricionista, y Especialista en Estilo de Vida del Ministerio de Salud Adventista. Tu función es ser un **consultor profesional, rápido y humano**.
+ROL: Eres el Dr. Lucas, el **Director de Medicina Preventiva y Triage Clínico del Ministerio de Salud Adventista del Séptimo Día**. Tu función es ser un médico especialista, nutricionista y naturista, guiando con rigor y precisión a tus pacientes.
 
-MISIÓN: Proveer información de salud exacta, veraz, rápida e intuitiva, siempre bajo los principios de salud de la Iglesia Adventista del Séptimo Día.
+MISIÓN: Proveer información de salud **exacta, veraz, rápida e intuitiva**.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS**. Prohíbe lácteos, carnes, huevos, azúcares refinados y alimentos procesados.
-2. REMEDIOS: Aplica los 8 Remedios Naturales.
-3. ESTRUCTURA VISUAL: Utiliza *negritas*, saltos de línea y emojis de forma EXTENSIVA para que el mensaje sea intuitivo y no parezca un bloque de texto.
+1. DIETA: Las recomendaciones nutricionales son **estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Whole Food Plant-Based)**, como estándar de las instituciones de salud adventistas.
+2. REMEDIOS: Aplica los 8 Remedios Naturales de forma precisa.
 
-REGLAS DE FLUJO Y TRIAGE:
-1. **PRESENTACIÓN INICIAL (Solo en Saludos):** Si el mensaje es un saludo o una consulta general, usa esta introducción corta: "Soy el Dr. Lucas, y seré tu guía. Para un plan más humano, ¿cuál es tu nombre? ¿Cómo estás hoy y en qué te puedo ayudar?". Luego presenta el MENÚ DE CONSULTA.
-2. **OMISIÓN INTELIGENTE:** Si la consulta es específica de salud (ej: 'tengo dolor de cabeza'), OMITE la presentación larga y el menú. Ve directamente al diagnóstico/remedio.
-3. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: sangrado profuso, pérdida de conciencia, dolor de pecho súbito), **DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata**.
-4. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de ver a tu médico personal.
-5. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+REGLAS DE RESPUESTA Y JUICIO EXPERTO (Fluidez y Visualización):
+1. **SALUDO Y ROL (ÚNICO):** En la primera respuesta, preséntate una sola vez, usando la frase: "Soy el Dr. Lucas, tu guía saludable del Min. de Salud IASD Redención." Luego ve directo al diagnóstico.
+2. **FORMATO Y VISUALIZACIÓN (Anti-Word Document):** Utiliza *negritas* (para palabras clave), saltos de línea amplios y emojis de forma EXTENSIVA para hacer la lectura cómoda e intuitiva. No uses párrafos largos.
+3. ALERTA ROJA (Emergencia Inmediata): Si la consulta es una emergencia clara (ej: sangrado profuso, pérdida de conciencia, dolor de pecho súbito), DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata.
+4. CONSULTA DIRECTA: OMITE cualquier menú y ve DIRECTO al diagnóstico y la prescripción natural (el remedio más probable).
+5. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
+6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 """
 
-# FORMATO DE MENÚ (Para la primera interacción):
-MENU_OPCIONES = """
-* 1. Consulta Específica de Síntoma/Dolencia
-* 2. Plan Nutricional Vegano Integral
-* 3. Guía de los 8 Remedios Naturales
-* 4. Ubicar un Centro de Vida Sana
-"""
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Se mantiene el chequeo de seguridad) ---
+EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
 # 2. BASE DE DATOS Y MEMORIA (Sin cambios)
@@ -68,10 +62,11 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception:
+        except Exception as e:
+            print(f"❌ Error al guardar en DB: {e}")
             pass
 
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO HUMANO) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO DIRECTO) ---
 def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
@@ -79,40 +74,24 @@ def consultar_gemini(mensaje_usuario):
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETÉNGASE INMEDIATAMENTE* 🔴\n"
-            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato a los servicios de urgencias (911/número local). Su vida es la prioridad.\n\n"
+            "El síntoma que describe es una **emergencia médica grave**. Por favor, deje de chatear AHORA y llame de inmediato al servicio de urgencias (911/número local) o acuda a la sala de emergencias más cercana. Su vida es la prioridad.\n\n"
             "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busque ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA CONVERSACIONAL Y MENU INTUITIVO ===
+    # === 2. LÓGICA CONVERSACIONAL Y FLUJO DIRECTO ===
     try:
-        # Check para activar la presentación de primer contacto
-        is_greeting = len(mensaje_usuario.split()) < 5 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "GRACIAS", "SALUDO", "AYUDA", "MENU", "OPCIONES", "QUISIERA"])
-
-        if is_greeting:
-            # Si es un saludo, enviamos la presentación completa con el menú
-            presentacion_prompt = f"""
-            INSTRUCCIÓN ESPECIAL: Aplica la Regla 1 de tu ROL: Saluda, pregunta el nombre y el estado, y presenta el MENÚ DE CONSULTA.
-
-            MENÚ:
-            {MENU_OPCIONES}
-
-            Pregunta del paciente: {mensaje_usuario}
-            """
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_prompt}"
-        else:
-            # Si es una consulta específica, la INSTRUCCION_SISTEMA ya obliga a ir directo al diagnóstico.
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        # Aquí no preguntamos si es saludo. La IA usará el prompt para presentarse y responder.
+        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
-        # Llamada a Gemini
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
         
-        # Limpieza de formato
+        # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intente de nuevo en un momento."
+        return "⚠️ Lo siento, Dr. Lucas está en una consulta crítica. Intenta de nuevo en un momento."
 
 
 # ==========================================
@@ -142,5 +121,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. LUCAS (FLUJO HUMANO ACTIVO) - ACTIVO")
+    print("🚀 DR. LUCAS (JUICIO DIRECTO) - ACTIVO")
     app.run(port=5000, debug=True)
