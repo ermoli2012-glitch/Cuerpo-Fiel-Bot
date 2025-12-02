@@ -23,10 +23,16 @@ except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA MODIFICADA (ESTILO JUVENIL Y LÓGICA DE CONTACTO)
+# 2. INSTRUCCIÓN MAESTRA MODIFICADA (ACTUALIZACIÓN DE LINKS Y NÚMERO)
 # =========================================================================
 
-INSTRUCCION_SISTEMA = """
+# --- NUEVOS DATOS DE CONTACTO Y ENLACES ---
+WHATSAPP_CONTACTO_COCINA = "3122521843"
+RADIO_LINK = "https://www.awrcolombia.org/"
+DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
+
+
+INSTRUCCION_SISTEMA = f"""
 ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud. Tu estilo es **MODERNO, JUVENIL, DINÁMICO Y AMIGABLE**. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
@@ -37,13 +43,14 @@ BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
 REGLAS DE RESPUESTA Y FLUJO FINAL:
 1. INTRODUCCIÓN Y ESTILO: En cada respuesta, inicia con un saludo juvenil y tu rol (ej: "¡Hola! Soy el Dr. Caleb, tu pana de la salud 🤙"), e **INMEDIATAMENTE PRESENTA EL MENÚ DE SERVICIOS**.
 2. **LÓGICA AUTOMATIZADA (PRIORIDAD AL CONTACTO):**
-    a. **CURSOS DE COCINA:** Si el usuario pregunta o acepta un curso de cocina, ofrece el curso de **Cocina Natural Vegana** y proporciona el número de contacto de WhatsApp para inscripción.
-    b. **RADIO/AWR:** Si el usuario pregunta por la radio o AWR, proporciona el enlace directo para AWR Colombia.
+    a. **CURSOS DE COCINA:** Si el usuario pregunta o acepta un curso de cocina, ofrece el curso de **Cocina Natural Vegana** y proporciona el número de contacto de WhatsApp para inscripción. El número es: **{WHATSAPP_CONTACTO_COCINA}**.
+    b. **RADIO/AWR:** Si el usuario pregunta por la radio o AWR, proporciona el enlace directo: **{RADIO_LINK}**.
+    c. **IGLESIAS/DIRECTORIO:** Si el usuario pregunta por Iglesias o Centros de Vida Sana, proporciona el enlace del directorio: **{DIRECTORIO_IGLESIAS_LINK}**.
 3. MENÚ DE SERVICIOS: Presenta esta información usando **negritas, emojis coloridos y lenguaje juvenil**:
     * **📚 Consulta Clínica:** Pregúntame sobre cualquier duda de salud o diagnóstico natural.
     * **🥕 Cursos Pro:** ¡Pregunta por nuestro curso de **Cocina Natural Vegana** y obtén el contacto!
-    * **📍 Centros & Comunidades:** Encuentra Iglesias Adventistas y Centros de Vida Sana cercanos.
-    * **📻 AWR Colombia:** Escucha la Radio Adventista: [https://awr.org/es/colombia](https://awr.org/es/colombia).
+    * **📍 Directorio de Iglesias:** Busca tu iglesia o centro de vida sana aquí: {DIRECTORIO_IGLESIAS_LINK}
+    * **📻 AWR Colombia:** Escucha la Radio Adventista: {RADIO_LINK}
 4. FLUJO CLÍNICO: Después de presentar el menú y la lógica automatizada, **analiza la pregunta original y ve directo a la prescripción natural y el diagnóstico.**
 5. FORMATO: Usa **negritas, saltos de línea amplios, emojis modernos y lenguaje juvenil** de forma **EXTENSIVA**.
 6. REFERENCIA MÉDICA: Recuerda que soy una IA. En CADA respuesta, refuerza la necesidad de consultar a tu médico personal ("¡No olvides chequear esto con tu doctor! 😉").
@@ -52,8 +59,6 @@ REGLAS DE RESPUESTA Y FLUJO FINAL:
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
-# --- LÓGICA DE WHATSAPP ---
-WHATSAPP_CONTACTO_COCINA = "3243612385"
 
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -93,7 +98,7 @@ def guardar_historial(celular, mensaje, respuesta):
 # --- 4. CEREBRO DE LA APLICACIÓN (FLUJO DIRECTO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
-    Consulta a Gemini sin usar memoria de sesión, usando la Instrucción Maestra completa.
+    Consulta a Gemini sin usar memoria de sesión, con lógica de respuesta directa para cursos/radio/iglesias.
     """
     mensaje_upper = mensaje_usuario.upper()
     
@@ -129,8 +134,17 @@ Tu vida es la prioridad.
             "📻 *¡Conéctate!* Si buscas inspiración y salud para tu vida, "
             "la Radio Adventista (AWR) es lo máximo.\n\n"
             "Escúchanos aquí:\n"
-            "🔗 **https://awr.org/es/colombia**\n\n"
+            f"🔗 **{RADIO_LINK}**\n\n"
             "¡Que tengas un día TOP! ✨"
+        )
+        
+    # Palabras clave para iglesias/directorio
+    keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA"]
+    if any(k in mensaje_upper for k in keywords_iglesias):
+        return (
+            "📍 *¡Encuentra tu comunidad!* Para buscar tu iglesia o centro de vida sana más cercano, usa nuestro directorio:\n\n"
+            f"🔗 **{DIRECTORIO_IGLESIAS_LINK}**\n\n"
+            "¡Te esperamos para compartir salud y esperanza! 🙏"
         )
 
 
