@@ -45,6 +45,7 @@ REGLAS DE RESPUESTA:
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # --- MENÚ DE SERVICIOS (Texto para la activación con "hola") ---
+# Los hipervínculos aquí serán visibles en la respuesta del bot si el formato se renderiza correctamente
 MENU_SERVICIOS = f"""
 ✨ **BIENVENIDO/A. SOY EL DR. CALEB** ✨
 *Tu Guía de Salud del Ministerio Adventista.*
@@ -54,8 +55,8 @@ Mi propósito es asistirte en tu camino hacia un **Estilo de Vida Saludable** y 
 **📋 SERVICIOS DE SALUD INTEGRAL**
 * **🩺 Consultoría Clínica:** Pregúntame sobre cualquier duda de salud o diagnóstico natural.
 * **🥦 Talleres de Cocina:** Pregunta por nuestro curso de **Cocina Natural y Estilo de Vida Saludable** y obtén el contacto.
-* **🗺️ Directorio de la Fe:** Busca Centros de Vida Sana o Iglesias Adventistas cercanas: {DIRECTORIO_IGLESIAS_LINK}
-* **📻 Voz de Esperanza:** Escucha la Radio Adventista: {RADIO_LINK}
+* **🗺️ Directorio de la Fe:** Busca Centros de Vida Sana o Iglesias Adventistas aquí: **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**
+* **📻 Voz de Esperanza:** Escucha la Radio Adventista: **[AWR Colombia]({RADIO_LINK})**
 
 *¡Confía en el poder de la restauración!*
 """
@@ -134,8 +135,7 @@ Tu vida es la prioridad.
     if any(k in mensaje_limpio for k in keywords_radio):
         return (
             "📻 *¡El mensaje de la triple ángel!* Conéctate a nuestra **Voz de Esperanza**.\n\n"
-            "Escúchanos aquí:\n"
-            f"🔗 **{RADIO_LINK}**\n\n"
+            f"Escúchanos aquí: **[AWR Colombia]({RADIO_LINK})**\n\n"
             "«El que cree en mí, aunque esté muerto, vivirá» (Juan 11:25)."
         )
         
@@ -144,18 +144,15 @@ Tu vida es la prioridad.
     if any(k in mensaje_limpio for k in keywords_iglesias):
         return (
             "📍 *¡Encuentra una comunidad de fe y salud!* Para buscar tu iglesia o centro de vida sana más cercano, usa el directorio:\n\n"
-            f"🔗 **{DIRECTORIO_IGLESIAS_LINK}**\n\n"
+            f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**\n\n"
             "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
         )
 
 
     # === 4. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
-        # Aquí se envía la Instrucción Maestra resumida para la respuesta clínica.
-        # Ya no se incluye el título largo.
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
-        # Usamos generate_content
         response = model.generate_content(prompt_full)
      
         # Limpieza de formato y retorno
