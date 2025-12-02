@@ -31,20 +31,17 @@ ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición, Naturista, y Guía d
 
 MISIÓN: Provee información de salud exacta, veraz, rápida e intuitiva, bajo el estándar terapéutico de la dieta VEGANA INTEGRAL y los 8 Remedios Naturales.
 
-BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. DIETA: Las recomendaciones nutricionales son estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS.
-2. REMEDIOS: Aplica los 8 Remedios Naturales de forma precisa.
-
 REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. **PRESENTACIÓN ÚNICA (Flujo Conversacional):** Si es el primer mensaje del paciente, debes usar una presentación formal. En las respuestas siguientes, OMITE por completo el título y el saludo largo, y ve directo a la consulta, actuando como un médico en un diálogo continuo.
-2. **ABORDAJE DIRECTO:** Siempre aborda la inquietud del usuario de forma inmediata.
-3. FORMATO VISUAL: Utiliza formato Markdown (negritas, listas, saltos de línea amplios y emojis) extensivamente.
-4. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
-5. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
+1. **PRESENTACIÓN ÚNICA Y CORTA:** En la primera respuesta, preséntate brevemente: "Saludos. Soy el Dr. Caleb, tu guía de salud. ¿Cómo estás hoy y en qué te puedo ayudar?". **DESPUÉS DE ESTO, NUNCA REPITAS ESTA INTRODUCCIÓN**.
+2. **ABORDAJE DIRECTO:** Siempre que recibas una consulta de salud específica (ej: "tengo dolor de cabeza"), OMITE el saludo y ve **directo al diagnóstico y la prescripción natural**.
+3. FORMATO VISUAL: Utiliza formato Markdown (negritas, listas, saltos de línea amplios y emojis) extensivamente para una lectura clara e intuitiva.
+4. ALERTA ROJA (Emergencia): Si la consulta es una emergencia clara, DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata.
+5. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
+6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 """
 
 # ==========================================
-# 2. BASE DE DATOS Y GESTIÓN DE ESTADO (Funciones)
+# 2. BASE DE DATOS Y GESTIÓN DE ESTADO (Funciones auxiliares)
 # ==========================================
 def obtener_conexion():
     try:
@@ -80,9 +77,11 @@ def contar_consultas(celular):
         except Exception:
             return 0
     return 0
+    
+# [Se omiten las funciones de estado avanzado para asegurar la estabilidad del flujo principal]
 
 # --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO DIRECTO) ---
-def consultar_gemini(mensaje_usuario, is_first_contact):
+def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
     # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
@@ -94,15 +93,16 @@ def consultar_gemini(mensaje_usuario, is_first_contact):
 
     # === 2. LÓGICA CONVERSACIONAL Y JUICIO DIRECTO ===
     try:
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        # Check para ver si es la PRIMERA VEZ que el usuario escribe (o solo un saludo)
+        is_first_interaction = contar_consultas('Web User') == 0 # Usamos este contador como proxy para la primera vez
 
-        if is_first_contact:
+        if is_first_interaction:
             # Si es el primer mensaje, agregamos la instrucción de presentación al prompt
-            presentacion_protocolo = "INSTRUCCIÓN EXTRA: Aplica la REGLA 1 (PRESENTACIÓN ÚNICA) y usa este formato: 'Saludos. Soy el Dr. Caleb, tu guía de salud. ¿Cuál es tu nombre y en qué te puedo ayudar?'"
+            presentacion_protocolo = "INSTRUCCIÓN EXTRA: Aplica la REGLA 1 (PRESENTACIÓN ÚNICA) y haz la presentación formal y cálida."
             prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_protocolo}\n\nPregunta del paciente: {mensaje_usuario}"
         else:
-             # Si no es el primer mensaje, la IA va directo al diagnóstico sin repetir el encabezado.
-            prompt_full = f"Continúa la conversación como un médico profesional. Pregunta del paciente: {mensaje_usuario}"
+            # Si es la segunda vez o una consulta específica, la IA va directo al diagnóstico.
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
@@ -133,20 +133,17 @@ def chat():
     celular = request.values.get('From', 'Web User').replace('whatsapp:', '')
     mensaje_in = request.values.get('Body', '') or request.get_json(silent=True).get('mensaje', '')
     
-    # 1. Chequear si es el primer contacto para la introducción
-    is_first_contact = contar_consultas(celular) == 0
-
-    # 2. CHEQUEO DE LÍMITE DE CONSULTAS (Si se agota, bloquea)
-    if contar_consultas(celular) >= TEST_LIMIT and not is_first_contact:
+    # 1. CHEQUEO DE LÍMITE DE CONSULTAS
+    if contar_consultas(celular) >= TEST_LIMIT:
         return jsonify({"respuesta": PROMOCION_ACCESO_LIMITADO})
     
-    # 3. PROCESAMIENTO
-    respuesta = consultar_gemini(mensaje_in, is_first_contact)
+    # 2. PROCESAMIENTO
+    respuesta = consultar_gemini(mensaje_in)
     
-    # 4. Guardar
+    # 3. Guardar
     guardar_historial(celular, mensaje_in, respuesta)
 
-    # 5. Responder
+    # 4. Responder
     if 'whatsapp' in request.values.get('From', '').lower():
         from twilio.twiml.messaging_response import MessagingResponse
         resp = MessagingResponse()
@@ -156,5 +153,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO CONVERSACIONAL FLUIDO) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO CONVERSACIONAL SIMPLE) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
