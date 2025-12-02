@@ -4,8 +4,8 @@ import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
 import json 
-import re 
 from datetime import datetime
+import re 
 
 app = Flask(__name__)
 
@@ -27,17 +27,31 @@ except Exception:
 
 # INSTRUCCIÓN MAESTRA (LA PERSONALIDAD FINAL: DIRECTA Y ESPECIALIZADA)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición, Naturista, y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es ser un consultor profesional, rápido, cálido y humano, **usando siempre el pronombre "TÚ"**.
+ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición, Naturista, y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es ser un consultor profesional, rápido, **cálido y humano**, **usando siempre el pronombre "TÚ"**.
 
-MISIÓN: Provee información de salud exacta, veraz, rápida e intuitiva, bajo el estándar terapéutico de la dieta VEGANA INTEGRAL y los 8 Remedios Naturales.
+MISIÓN: Provee información de salud exacta, veraz, rápida e intuitiva, manteniendo la autoridad del mensaje de salud adventista.
+
+BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
+1. DIETA: Las recomendaciones nutricionales son estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS.
+2. REMEDIOS: Aplica los 8 Remedios Naturales de forma precisa.
 
 REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. **PRESENTACIÓN Y FLUJO:** En la primera respuesta, preséntate brevemente y pregunta el nombre del paciente. **Después de esto, OMITE por completo el título y ve directo a responder la consulta.** Mantén la conversación fluida, como un diálogo real médico-paciente.
-2. **ABORDAJE DIRECTO:** Si la consulta es específica de salud (ej: 'dolor de cabeza'), OMITE el saludo y ve directamente al diagnóstico y la prescripción natural.
-3. FORMATO: Utiliza formato Markdown (negritas, listas, saltos de línea amplios y emojis) extensivamente para una lectura clara e intuitiva.
-4. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de ver a tu médico personal.
-5. CIERRE ESPIRITUAL: Finaliza SIEMPRE con un versículo bíblico de esperanza, relevante al tema.
+1. **TONO Y COMODIDAD:** Tu objetivo es que el usuario se sienta cómodo y seguro, como en una consulta verdadera.
+2. **PRESENTACIÓN ÚNICA Y CORTA:** En la primera respuesta o saludo, preséntate brevemente con el saludo: "Saludos. Soy el Dr. Caleb, tu guía de salud. ¿Cuál es tu nombre y en qué te puedo ayudar?". **Después de esto, OMITE siempre el título y solo responde a la consulta.**
+3. **ABORDAJE DIRECTO:** Si la consulta es específica de salud (ej: 'dolor de cabeza'), OMITE el saludo y el menú. Ve **directo al diagnóstico y la prescripción natural**.
+4. **FORMATO VISUAL:** Utiliza formato Markdown (negritas, listas, emojis, saltos de línea amplios) de forma EXTENSIVA para romper el formato "hoja de Word".
+5. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
+6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 """
+
+PROMOCION_ACCESO_LIMITADO = (
+    "🚨 *ATENCIÓN - LÍMITE DE CONSULTAS ALCANZADO* 🚨\n\n"
+    "Estimado(a) usuario(a), **Dr. Caleb** te ha ofrecido dos consultas gratuitas como cortesía del Ministerio de Salud. Si deseas tener acceso *ilimitado* y completo a las guías de salud:\n\n"
+    "👉 **Comunícate con el Director de Salud y Temperancia de la Iglesia Adventista Redención Barranquilla para obtener tu código de acceso.**"
+)
+
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Se mantiene el chequeo de seguridad) ---
+EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
 # 2. BASE DE DATOS Y GESTIÓN DE ESTADO (Funciones auxiliares)
@@ -76,41 +90,40 @@ def contar_consultas(celular):
         except Exception:
             return 0
     return 0
+    
+# [Funciones de estado (obtener_estado, actualizar_estado, calcular_salud_avanzada) se omiten aquí, pero deben estar en el archivo local para que el código compile.]
 
-# (Se omiten las funciones de estado avanzado por ahora para asegurar la estabilidad del flujo principal)
-
-
-# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO DIRECTO) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA) ---
 def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
-    # --- TRIAGE DE EMERGENCIA (Se mantiene) ---
-    EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
+    # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETENTE INMEDIATAMENTE* 🔴\n"
-            "El síntoma que describes es una **emergencia médica grave**. Por favor, deja de chatear AHORA y llama de inmediato a los servicios de urgencias. Tu vida es la prioridad."
+            "El síntoma que describes es una **emergencia médica grave**. Por favor, deja de chatear AHORA y llama de inmediato al servicio de urgencias (911/número local). Tu vida es la prioridad."
         )
 
-    # Lógica de flujo (Determinar si es la primera vez)
-    consultas_previas = contar_consultas('Web User') # Usamos Web User para simplificar en la Web App
-    is_initial_contact = consultas_previas == 0
-    
-    # === 1. LÓGICA DE PRESENTACIÓN ÚNICA ===
-    if is_initial_contact:
-        # Primera respuesta: forzamos la presentación completa
-        presentacion_protocolo = """
-        INSTRUCCIÓN ESPECIAL: Aplica la REGLA 1 de tu ROL: Saluda con tu título completo y pregunta el nombre del paciente.
-        """
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_protocolo}\n\nPregunta del paciente: {mensaje_usuario}"
-    else:
-        # Respuestas subsecuentes: la IA va directo al diagnóstico (REGLA 2)
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
-    
-    # === 2. LLAMADA A GEMINI ===
+    # === 2. LÓGICA CONVERSACIONAL Y JUICIO ===
     try:
+        # Check para activar la presentación de primer contacto
+        is_initial_greeting = len(mensaje_usuario.split()) < 4 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "SALUDO"])
+
+        if is_initial_greeting:
+            # Si es el primer saludo, forzamos la presentación completa (REGLA 1)
+            presentacion_protocolo = """
+            INSTRUCCIÓN ESPECIAL: Aplica la REGLA 1 de tu ROL: Saluda con tu título completo, pregunta el nombre del paciente, y luego pregunta: "¿Cómo estás hoy y en qué te puedo ayudar?". OMITE ESTA PRESENTACIÓN en futuras respuestas.
+            """
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_protocolo}\n\nPregunta del paciente: {mensaje_usuario}"
+        else:
+            # Si no es un saludo, la IA irá directo al diagnóstico sin repetir su nombre/título.
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        
+        # Llamada a Gemini
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
+        
+        # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
@@ -121,12 +134,6 @@ def consultar_gemini(mensaje_usuario):
 # ==========================================
 # 4. RUTAS WEB Y DE WHATSAPP (Añadiendo la restricción)
 # ==========================================
-PROMOCION_ACCESO_LIMITADO = (
-    "🚨 *ATENCIÓN - LÍMITE DE CONSULTAS ALCANZADO* 🚨\n\n"
-    "Estimado(a) usuario(a), **Dr. Caleb** te ha ofrecido dos consultas gratuitas como cortesía del Ministerio de Salud. Si deseas tener acceso *ilimitado* y completo a las guías de salud:\n\n"
-    "👉 **Comunícate con el Director de Salud y Temperancia de la Iglesia Adventista Redención Barranquilla para obtener tu código de acceso.**"
-)
-
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -156,5 +163,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO CONVERSACIONAL SIMPLE) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO EMPÁTICO Y SIMPLE) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
