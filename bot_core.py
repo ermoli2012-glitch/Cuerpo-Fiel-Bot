@@ -37,7 +37,7 @@ REGLAS DE RESPUESTA:
 1. **CONTESTA DE INMEDIATO:** Omite cualquier saludo o introducción en la respuesta clínica. Ve directo al diagnóstico.
 2. **RESPUESTA ORGÁNICA:** Cuando te saluden ("hola"), **genera un saludo humano y cálido, y preséntate como Genesis**. Inmediatamente después del saludo, presenta de forma muy conversacional el menú de servicios (Consulta, Cocina, Iglesias, Radio). Usa los enlaces de contacto en el menú.
 3. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
-4. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Dieta -> Creación).
+4. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
 5. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
 6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
@@ -100,21 +100,25 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO (SE ENVÍA A GEMINI PARA RESPUESTA HUMANA) ===
+    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO (RESPUESTA HUMANA Y FORMATO IMPACTANTE) ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
-        # Creamos un prompt específico para que Gemini genere la respuesta humana y el menú.
-        # Esto elimina la presentación estática y repetitiva.
+        
+        # PROMPT ESPECÍFICO CON INSTRUCCIONES DE FORMATO AGRESIVO
         prompt_menu = f"""
         {INSTRUCCION_SISTEMA}
         
-        TAREA ESPECÍFICA: El usuario ha escrito '{mensaje_usuario}'. Eres Genesis. Genera una respuesta de bienvenida cálida, natural y humana. Preséntate brevemente y, a continuación, presenta el siguiente menú de servicios de forma conversacional:
+        TAREA ESPECÍFICA: El usuario ha escrito '{mensaje_usuario}'. Eres Genesis. Genera una respuesta de bienvenida cálida, natural y humana. Preséntate brevemente como Genesis, tu guía saludable. Inmediatamente después del saludo, presenta el menú de servicios.
         
-        1. Consulta Clínica (Pide la pregunta de salud).
-        2. Talleres de Cocina (Menciona el curso y el contacto {WHATSAPP_CONTACTO_COCINA}).
-        3. Directorio de Iglesias ([Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})).
-        4. Radio Adventista ([AWR Colombia]({RADIO_LINK})).
+        INSTRUCCIONES DE FORMATO ADICIONALES (¡OBLIGATORIAS!):
+        - Usa secciones de **título** con muchos emojis y negritas (ej: ⭐ [TÍTULO] ⭐).
+        - Usa **saltos de línea amplios** para separar cada sección del menú.
+        - El menú debe ser dinámico, moderno y profesional, como una **tarjeta de presentación digital** impactante.
         
-        Recuerda usar emojis y el tono profesional/cálido.
+        MENÚ REQUERIDO:
+        1. **Consultoría:** Consulta Clínica, pregunta de salud.
+        2. **Cocina Natural:** Talleres de Cocina (Contacto: {WHATSAPP_CONTACTO_COCINA}).
+        3. **Comunidad:** Directorio de Iglesias ([Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})).
+        4. **Inspiración:** Radio Adventista ([AWR Colombia]({RADIO_LINK})).
         """
         
         try:
@@ -159,12 +163,10 @@ Tu vida es la prioridad.
 
     # === 4. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
-        # La IA va directo al grano gracias a la REGLA 1
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
      
-        # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
@@ -205,5 +207,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 GENESIS (GUÍA SALUDABLE) - ACTIVO")
+    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
