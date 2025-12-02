@@ -15,8 +15,33 @@
         .chat-input-container { width: 100%; max-width: 600px; position: fixed; bottom: 0; padding: 15px 20px; background-color: white; box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05); border-top: 1px solid #ddd; display: flex; }
         .chat-input-container input { padding: 10px; flex-grow: 1; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; margin-right: 10px; }
         .chat-input-container button { padding: 10px 15px; border: none; background-color: #00796b; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .user-message { background-color: #e6f3ff; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: right; }
-        .bot-response { background-color: #f0f7f4; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: left; white-space: pre-wrap; }
+        .user-message { 
+            background-color: #e6f3ff; 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            text-align: right; 
+            max-width: 80%;
+            align-self: flex-end; /* Para mover el mensaje a la derecha */
+        }
+        .bot-response { 
+            background-color: #f0f7f4; 
+            padding: 10px; 
+            border-radius: 8px; 
+            margin: 10px 0; 
+            text-align: left; 
+            white-space: pre-wrap; 
+            max-width: 80%;
+            align-self: flex-start; /* Para mantener el mensaje a la izquierda */
+        }
+
+        /* Contenedor de mensajes real para el scroll */
+        #messages-display {
+            width: 100%; 
+            max-width: 600px;
+            display: flex; /* Añadir display flex */
+            flex-direction: column; /* Apilamiento vertical */
+        }
     </style>
 </head>
 <body>
@@ -27,7 +52,7 @@
             </div>
     </div>
     
-    <div id="messages-display" style="width: 100%; max-width: 600px;">
+    <div id="messages-display">
         </div>
 
 </div>
@@ -53,7 +78,6 @@
 
         welcomeDiv.innerHTML = renderMarkdown(welcomeText);
 
-        // Permite enviar con la tecla Enter
         document.getElementById('chat-input').addEventListener('keypress', function (e) {
             if (e.key === 'Enter') {
                 sendMessage();
@@ -61,22 +85,24 @@
         });
     });
     
-    // Función para añadir mensajes al DOM
+    // Función para añadir mensajes al DOM y FORZAR EL SCROLL
     function displayMessage(sender, text) {
         const messagesDiv = document.getElementById('messages-display');
         const newMessage = document.createElement('div');
         newMessage.className = sender === 'user' ? 'user-message' : 'bot-response';
         
-        // Renderizar Markdown para la respuesta del bot
         function renderBotMarkdown(text) {
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // Reemplazar saltos de línea para el formato de chat
             return text.replace(/\n/g, '<br>');
         }
         
         newMessage.innerHTML = sender === 'user' ? text : renderBotMarkdown(text);
         messagesDiv.appendChild(newMessage);
-        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+        
+        // --- CÓDIGO CLAVE PARA EL SCROLL ---
+        window.scrollTo(0, document.body.scrollHeight);
+        // messagesDiv.scrollTop = messagesDiv.scrollHeight; // Esta línea puede fallar, mejor usar window.scrollTo
+
     }
 
     // FUNCIÓN CRÍTICA QUE CONECTA EL FRONTEND CON LA RUTA DE FLASK
@@ -85,25 +111,23 @@
         const message = input.value;
         if (!message.trim()) return;
 
-        // Mostrar mensaje del usuario inmediatamente
+        // Mostrar mensaje del usuario
         displayMessage('user', message);
         input.value = '';
 
         try {
-            // Usamos fetch para enviar la solicitud POST a tu ruta /chat
             const response = await fetch('/chat', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                // El cuerpo debe coincidir con lo que Flask espera (mensaje)
                 body: JSON.stringify({ mensaje: message })
             });
 
             const data = await response.json();
             
             if (data.respuesta) {
-                // Mostrar la respuesta del bot
+                // Mostrar la respuesta del bot y activar el scroll
                 displayMessage('bot', data.respuesta);
             } else {
                 displayMessage('bot', '⚠️ Error: No se recibió una respuesta válida del servidor.');
