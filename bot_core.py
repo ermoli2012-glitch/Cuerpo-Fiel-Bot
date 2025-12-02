@@ -3,48 +3,46 @@ import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
-import json 
-import re 
-from datetime import datetime
 
 app = Flask(__name__)
 
 # ==========================================
-# 1. CONFIGURACIÓN INICIAL Y CONSTANTES
+# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
 # ==========================================
 API_KEY = os.environ.get("GEMINI_API_KEY") 
-TEST_LIMIT = 2 
-EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 try:
     if not API_KEY:
         print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
         
     genai.configure(api_key=API_KEY)
+    # Usamos el modelo más rápido y eficiente para chat
     model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025') 
-except Exception:
-    pass
+except Exception as e:
+    print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD FINAL: DIRECTOR MST)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD FINAL: DIRECTA Y ESPECIALIZADA)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Caleb, **Coordinador del Movimiento Salud Total (MST) y Guía de Salud del Ministerio de Salud Adventista**. Tu función es ser un médico especialista, nutricionista y naturista, con el rigor de las instituciones de salud adventistas y la empatía del amor de Jesús. Tu propósito es guiar al paciente a **PRACTICAR, COMPARTIR y SERVIR**. **Siempre usa el pronombre "TÚ"**.
-
-MISIÓN: Proveer información de salud **exacta, veraz, rápida y HUMANIZADA**, bajo el estándar terapéutico de la dieta VEGANA INTEGRAL y los 8 Remedios Naturales (ADELANTE).
+ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. [cite_start]DIETA: Las recomendaciones nutricionales son estrictamente VEGANAS, INTEGRALES y BASADAS EN PLANTAS (Libre de tabaco, alcohol, otras drogas y alimentos impuros, Manual de Iglesia 2022 [cite: 5]).
-2. ENFOQUE HOLÍSTICO: El consejo siempre será integral (físico, mental, espiritual).
+1. ROL: Médico Especialista, Nutricionista y Naturista.
+2. DIETA: Estrictamente VEGANA, INTEGRAL y BASADA EN PLANTAS.
+3. TRIAGE: Mantén la regla de Alerta Roja si detectas emergencia extrema.
 
 REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. **PRESENTACIÓN ÚNICA Y EMPÁTICA:** Solo en la primera respuesta, preséntate brevemente con el saludo de bienvenida (Ej: "¡Saludos! Soy el Dr. Caleb, tu guía. ¿Cuál es tu nombre?"). **Después de esto, OMITE por completo el título y ve directo al tema.**
-2. **ABORDAJE DIRECTO:** Si la consulta es específica de salud (ej: 'dolor de cabeza'), OMITE el saludo y ve directamente al diagnóstico y la prescripción natural.
-3. FORMATO VISUAL: Utiliza Markdown (negritas, listas, emojis) extensivamente.
-4. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
-5. CIERRE EVANGELÍSTICO: Finaliza SIEMPRE con una invitación a la misión del MST: **PRACTICAR, COMPARTIR y SERVIR**, y un versículo bíblico de esperanza.
+1. INTRODUCCIÓN: En cada respuesta, inicia con un saludo breve y tu rol: "Saludos. Soy el Dr. Caleb, tu guía de salud..." (Omitiendo los cargos largos).
+2. FLUJO: **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
+3. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado (ej: Estrés -> Reposo; Dieta -> Cuerpo Templo).
+4. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
+5. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
 """
 
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
+EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
+
 # ==========================================
-# 2. BASE DE DATOS Y GESTIÓN DE ESTADO (Funciones)
+# 2. BASE DE DATOS Y MEMORIA (Sin cambios)
 # ==========================================
 def obtener_conexion():
     try:
@@ -64,47 +62,26 @@ def guardar_historial(celular, mensaje, respuesta):
             conn.commit()
             cursor.close()
             conn.close()
-        except Exception:
+        except Exception as e:
+            print(f"❌ Error al guardar en DB: {e}")
             pass
 
-def contar_consultas(celular):
-    conn = obtener_conexion()
-    if conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute("SELECT COUNT(*) FROM historial_consultas WHERE celular = %s", (celular,))
-            count = cursor.fetchone()[0]
-            cursor.close()
-            conn.close()
-            return count
-        except Exception:
-            return 0
-    return 0
-
 # --- 3. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO DIRECTO) ---
-def consultar_gemini(mensaje_usuario, is_first_contact):
+def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
     # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
-    EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETENTE INMEDIATAMENTE* 🔴\n"
-            "El síntoma que describes es una **emergencia médica grave**. Por favor, deja de chatear AHORA y llama de inmediato a los servicios de urgencias (911/número local). Tu vida es la prioridad."
+            "El síntoma que describes es una **emergencia médica grave**. Por favor, deja de chatear AHORA y llama de inmediato a los servicios de urgencias (911/número local) o acude a la sala de emergencias más cercana. Tu vida es la prioridad.\n\n"
+            "🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**"
         )
 
-    # === 2. LÓGICA CONVERSACIONAL Y JUICIO DIRECTO ===
+    # === 2. LÓGICA NORMAL (IA CON JUICIO) ===
     try:
-        
-        prompt_base = INSTRUCCION_SISTEMA # El prompt base contiene todas las reglas y personalidad.
-
-        if is_first_contact:
-            # Si es el primer mensaje, forzamos la presentación completa y la pregunta por el nombre.
-            presentacion_protocolo = "INSTRUCCIÓN ESPECIAL: Aplica la REGLA 1 de tu ROL: Usa la presentación formal y cálida, pregunta el nombre del paciente, y luego pregunta: '¿Cómo estás hoy y en qué te puedo ayudar?'."
-            prompt_full = f"{prompt_base}\n{presentacion_protocolo}\n\nPregunta del paciente: {mensaje_usuario}"
-        else:
-            # Si no es el primer mensaje, la IA va directo al diagnóstico sin repetir el encabezado.
-            prompt_full = f"Continúa la conversación como un médico profesional. Pregunta del paciente: {mensaje_usuario}"
+        # La IA va directo a la respuesta con la personalidad simplificada (REGLA 2)
+        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         chat = model.start_chat(history=[])
         response = chat.send_message(prompt_full)
@@ -118,14 +95,8 @@ def consultar_gemini(mensaje_usuario, is_first_contact):
 
 
 # ==========================================
-# 4. RUTAS WEB Y DE WHATSAPP (Añadiendo la restricción)
+# 4. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
-PROMOCION_ACCESO_LIMITADO = (
-    "🚨 *ATENCIÓN - LÍMITE DE CONSULTAS ALCANZADO* 🚨\n\n"
-    "Estimado(a) usuario(a), **Dr. Caleb** te ha ofrecido dos consultas gratuitas como cortesía del Ministerio de Salud. Si deseas tener acceso *ilimitado* y completo a las guías de salud:\n\n"
-    "👉 **Comunícate con el Director de Salud y Temperancia de la Iglesia Adventista Redención Barranquilla para obtener tu código de acceso.**"
-)
-
 @app.route('/')
 def home():
     return render_template('index.html')
@@ -135,20 +106,12 @@ def chat():
     celular = request.values.get('From', 'Web User').replace('whatsapp:', '')
     mensaje_in = request.values.get('Body', '') or request.get_json(silent=True).get('mensaje', '')
     
-    # 1. Chequear si es el primer contacto para la introducción
-    is_first_contact = contar_consultas('Web User') == 0 # Usamos 'Web User' para Web App
+    print(f"📩 Recibido de {celular}: {mensaje_in}")
 
-    # 2. CHEQUEO DE LÍMITE DE CONSULTAS
-    if contar_consultas(celular) >= TEST_LIMIT:
-        return jsonify({"respuesta": PROMOCION_ACCESO_LIMITADO})
+    respuesta = consultar_gemini(mensaje_in)
     
-    # 3. PROCESAMIENTO
-    respuesta = consultar_gemini(mensaje_in, is_first_contact)
-    
-    # 4. Guardar
     guardar_historial(celular, mensaje_in, respuesta)
 
-    # 5. Responder
     if 'whatsapp' in request.values.get('From', '').lower():
         from twilio.twiml.messaging_response import MessagingResponse
         resp = MessagingResponse()
@@ -158,5 +121,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO EMPÁTICO) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO DIRECTO FINAL) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
