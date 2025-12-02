@@ -23,33 +23,37 @@ except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA MODIFICADA (PRIORIZANDO EL MENÚ DE SERVICIOS)
+# 2. INSTRUCCIÓN MAESTRA MODIFICADA (ESTILO JUVENIL Y LÓGICA DE CONTACTO)
 # =========================================================================
 
-# La IA va a responder esto en CADA interacción (saludo repetitivo y menú).
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
+ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud. Tu estilo es **MODERNO, JUVENIL, DINÁMICO Y AMIGABLE**. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
 
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
-1. ROL: Médico Especialista, Nutricionista y Naturista.
+1. ROL: Médico, Nutricionista y Naturista.
 2. DIETA: Estrictamente VEGANA, INTEGRAL y BASADA EN PLANTAS.
 3. TRIAGE: Mantén la regla de Alerta Roja si detectas emergencia extrema.
 
 REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. INTRODUCCIÓN: **¡ESTA REGLA ES LA PRIORIDAD MÁXIMA!** En cada respuesta, inicia con un saludo breve y tu rol: "Saludos. Soy el Dr. Caleb, tu guía de salud...", e **INMEDIATAMENTE PRESENTA EL MENÚ DE SERVICIOS** antes de responder la pregunta del usuario.
-2. MENÚ DE SERVICIOS: Presenta esta información usando **negritas y emojis**:
-    * **Servicios de Salud:** Provee información clínica (diagnóstico y prescripción natural).
-    * **Cursos Personalizados:** Ofrece enlaces y detalles sobre cursos personalizados de salud.
-    * **Centros y Comunidades:** Proporciona datos de contacto para Centros de Vida Sana e Iglesias Adventistas cercanas.
-    * **Radio Adventista (AWR):** Incluye la invitación con el link de la radio: [https://awr.org/es/colombia](https://awr.org/es/colombia).
-3. FLUJO: Después de presentar el menú, **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
-4. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado.
-5. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
-6. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
+1. INTRODUCCIÓN Y ESTILO: En cada respuesta, inicia con un saludo juvenil y tu rol (ej: "¡Hola! Soy el Dr. Caleb, tu pana de la salud 🤙"), e **INMEDIATAMENTE PRESENTA EL MENÚ DE SERVICIOS**.
+2. **LÓGICA AUTOMATIZADA (PRIORIDAD AL CONTACTO):**
+    a. **CURSOS DE COCINA:** Si el usuario pregunta o acepta un curso de cocina, ofrece el curso de **Cocina Natural Vegana** y proporciona el número de contacto de WhatsApp para inscripción.
+    b. **RADIO/AWR:** Si el usuario pregunta por la radio o AWR, proporciona el enlace directo para AWR Colombia.
+3. MENÚ DE SERVICIOS: Presenta esta información usando **negritas, emojis coloridos y lenguaje juvenil**:
+    * **📚 Consulta Clínica:** Pregúntame sobre cualquier duda de salud o diagnóstico natural.
+    * **🥕 Cursos Pro:** ¡Pregunta por nuestro curso de **Cocina Natural Vegana** y obtén el contacto!
+    * **📍 Centros & Comunidades:** Encuentra Iglesias Adventistas y Centros de Vida Sana cercanos.
+    * **📻 AWR Colombia:** Escucha la Radio Adventista: [https://awr.org/es/colombia](https://awr.org/es/colombia).
+4. FLUJO CLÍNICO: Después de presentar el menú y la lógica automatizada, **analiza la pregunta original y ve directo a la prescripción natural y el diagnóstico.**
+5. FORMATO: Usa **negritas, saltos de línea amplios, emojis modernos y lenguaje juvenil** de forma **EXTENSIVA**.
+6. REFERENCIA MÉDICA: Recuerda que soy una IA. En CADA respuesta, refuerza la necesidad de consultar a tu médico personal ("¡No olvides chequear esto con tu doctor! 😉").
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
+
+# --- LÓGICA DE WHATSAPP ---
+WHATSAPP_CONTACTO_COCINA = "3243612385"
 
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -86,7 +90,7 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO DIRECTO ORIGINAL) ---
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO DIRECTO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Consulta a Gemini sin usar memoria de sesión, usando la Instrucción Maestra completa.
@@ -105,7 +109,32 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA NORMAL (IA CON JUICIO) ===
+    # === 2. LÓGICA DE REGLA AUTOMATIZADA (Fuera de la IA para mayor fiabilidad) ===
+    
+    # Palabras clave para cursos de cocina
+    keywords_cocina = ["CURSO", "COCINA", "RECETAS", "WHATSAPP", "NATURAL"]
+    if any(k in mensaje_upper for k in keywords_cocina):
+        return (
+            "🎉 *¡Genial!* El Dr. Caleb recomienda el curso **Cocina Natural Vegana**.\n\n"
+            "Para unirte al grupo de inscripción y empezar a cocinar saludable, "
+            "escribe a este WhatsApp:\n"
+            f"📲 **{WHATSAPP_CONTACTO_COCINA}**\n\n"
+            "¡Te esperamos con la mejor energía! 🥑🥦"
+        )
+        
+    # Palabras clave para la radio
+    keywords_radio = ["RADIO", "AWR", "ESCUCHAR"]
+    if any(k in mensaje_upper for k in keywords_radio):
+        return (
+            "📻 *¡Conéctate!* Si buscas inspiración y salud para tu vida, "
+            "la Radio Adventista (AWR) es lo máximo.\n\n"
+            "Escúchanos aquí:\n"
+            "🔗 **https://awr.org/es/colombia**\n\n"
+            "¡Que tengas un día TOP! ✨"
+        )
+
+
+    # === 3. LÓGICA NORMAL (IA CON JUICIO) ===
     try:
         # Aquí se envía la Instrucción Maestra completa con el menú de servicios
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
@@ -120,7 +149,7 @@ Tu vida es la prioridad.
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
         return """
 ⚠️ Lo siento, Dr. Caleb está en una consulta crítica.
-Intenta de nuevo en un momento.
+Intenta de nuevo en un momento."
 """
 
 
@@ -154,5 +183,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO DIRECTO ORIGINAL) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO DIRECTO JUVENIL) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
