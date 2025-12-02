@@ -28,36 +28,24 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (ROL: GENESIS)
+# 2. INSTRUCCIÓN MAESTRA (RESPUESTA ORGÁNICA)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es PROFESIONAL, PRÁCTICO, DINÁMICO Y CENTRADO EN LA FE. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CÁLIDO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
-1. **OBLIGATORIO: CONTESTA ENSEGUIDA.** Omite cualquier saludo, introducción o referencia a tu nombre (Genesis) al inicio de la respuesta clínica. Ve directo al diagnóstico y la prescripción natural.
-2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
-3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
-4. Formato: Usa negritas, saltos de línea amplios, emojis elegantes y lenguaje profesional e inspirador.
-5. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
+1. **CONTESTA DE INMEDIATO:** Omite cualquier saludo o introducción en la respuesta clínica. Ve directo al diagnóstico.
+2. **RESPUESTA ORGÁNICA:** Cuando te saluden ("hola"), **genera un saludo humano y cálido, y preséntate como Genesis**. Inmediatamente después del saludo, presenta de forma muy conversacional el menú de servicios (Consulta, Cocina, Iglesias, Radio). Usa los enlaces de contacto en el menú.
+3. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
+4. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Dieta -> Creación).
+5. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
+6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
-# --- MENÚ DE SERVICIOS (Texto para la activación con "hola") ---
-MENU_SERVICIOS = f"""
-👋 **HOLA. SOY GENESIS, tu guía saludable.**
 
-¡Bienvenidos al Ministerio de Salud Adventista del distrito Redencion! Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable** basado en los principios de Dios.
-
-**🚀 NUESTROS SERVICIOS**
-* **🩺 Consulta Rápida:** Pregúntame sobre cualquier síntoma o tratamiento natural.
-* **🥦 Talleres de Cocina:** ¡Transforma tu cocina! Pregunta por el curso y obtén el contacto.
-* **🗺️ Encuentra tu Comunidad:** **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**
-* **📻 Voz de Esperanza:** Escucha la Radio Adventista: **[AWR Colombia]({RADIO_LINK})**
-
-*¡Empecemos tu viaje a la salud!*
-"""
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
 # ==========================================
@@ -112,9 +100,31 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO ===
+    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO (SE ENVÍA A GEMINI PARA RESPUESTA HUMANA) ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
-        return MENU_SERVICIOS
+        # Creamos un prompt específico para que Gemini genere la respuesta humana y el menú.
+        # Esto elimina la presentación estática y repetitiva.
+        prompt_menu = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        TAREA ESPECÍFICA: El usuario ha escrito '{mensaje_usuario}'. Eres Genesis. Genera una respuesta de bienvenida cálida, natural y humana. Preséntate brevemente y, a continuación, presenta el siguiente menú de servicios de forma conversacional:
+        
+        1. Consulta Clínica (Pide la pregunta de salud).
+        2. Talleres de Cocina (Menciona el curso y el contacto {WHATSAPP_CONTACTO_COCINA}).
+        3. Directorio de Iglesias ([Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})).
+        4. Radio Adventista ([AWR Colombia]({RADIO_LINK})).
+        
+        Recuerda usar emojis y el tono profesional/cálido.
+        """
+        
+        try:
+            response = model.generate_content(prompt_menu)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (MENÚ ORGÁNICO): {e}")
+            # Si Gemini falla al generar el menú orgánico, revertimos a un mensaje simple
+            return "👋 ¡Hola! Soy Genesis. Lo siento, tengo una pequeña dificultad técnica. Por favor, escribe tu pregunta de salud."
 
     # === 3. LÓGICA DE REGLA AUTOMATIZADA (Fuera de la IA para mayor fiabilidad) ===
     
@@ -149,6 +159,7 @@ Tu vida es la prioridad.
 
     # === 4. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
+        # La IA va directo al grano gracias a la REGLA 1
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
@@ -189,4 +200,10 @@ def chat():
     if 'whatsapp' in celular_raw.lower():
         resp = MessagingResponse()
         resp.message(respuesta)
-        return str(resp), 200, {'
+        return str(resp), 200, {'Content-Type': 'application/xml'}
+    else:
+        return jsonify({"respuesta": respuesta})
+
+if __name__ == '__main__':
+    print("🚀 GENESIS (GUÍA SALUDABLE) - ACTIVO")
+    app.run(port=os.environ.get('PORT', 5000), debug=True)
