@@ -28,7 +28,7 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (RESPUESTA CLÍNICA INMEDIATA)
+# 2. INSTRUCCIÓN MAESTRA (ROL: GENESIS)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
 ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es PROFESIONAL, PRÁCTICO, DINÁMICO Y CENTRADO EN LA FE. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
@@ -46,10 +46,9 @@ EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "
 
 # --- MENÚ DE SERVICIOS (Texto para la activación con "hola") ---
 MENU_SERVICIOS = f"""
-✨ **¡HOLA! SOY GENESIS** ✨
-*Tu guía saludable del Ministerio de Salud Adventista del distrito Redencion.*
+👋 **HOLA. SOY GENESIS, tu guía saludable.**
 
-¡Bienvenidos! Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable** basado en los principios de Dios.
+¡Bienvenidos al Ministerio de Salud Adventista del distrito Redencion! Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable** basado en los principios de Dios.
 
 **🚀 NUESTROS SERVICIOS**
 * **🩺 Consulta Rápida:** Pregúntame sobre cualquier síntoma o tratamiento natural.
@@ -150,10 +149,8 @@ Tu vida es la prioridad.
 
     # === 4. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
-        # La IA va directo al grano gracias a la REGLA 1 del INSTRUCCION_SISTEMA
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
-        # Usamos generate_content
         response = model.generate_content(prompt_full)
      
         # Limpieza de formato y retorno
@@ -192,10 +189,4 @@ def chat():
     if 'whatsapp' in celular_raw.lower():
         resp = MessagingResponse()
         resp.message(respuesta)
-        return str(resp), 200, {'Content-Type': 'application/xml'}
-    else:
-        return jsonify({"respuesta": respuesta})
-
-if __name__ == '__main__':
-    print("🚀 GENESIS (GUÍA SALUDABLE) - ACTIVO")
-    app.run(port=os.environ.get('PORT', 5000), debug=True)
+        return str(resp), 200, {'
