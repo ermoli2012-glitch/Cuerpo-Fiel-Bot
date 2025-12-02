@@ -10,7 +10,7 @@ from datetime import datetime
 app = Flask(__name__)
 
 # ==========================================
-# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
+# 1. CONFIGURACIÓN INICIAL Y CONSTANTES
 # ==========================================
 API_KEY = os.environ.get("GEMINI_API_KEY") 
 TEST_LIMIT = 2 
@@ -25,19 +25,19 @@ try:
 except Exception:
     pass
 
-# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD FINAL: DIRECTA Y ESPECIALIZADA)
+# INSTRUCCIÓN MAESTRA (LA PERSONALIDAD FINAL: DIRECTA Y FLUIDA)
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición, Naturista, y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es ser un consultor profesional, rápido, cálido y humano, **usando siempre el pronombre "TÚ" y un tono alentador**.
+ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición, Naturista, y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es ser un consultor profesional, rápido, cálido y humano, **usando siempre el pronombre "TÚ"**.
 
-MISIÓN: Provee información de salud exacta, veraz, rápida e intuitiva, bajo el estándar terapéutico de la dieta VEGANA INTEGRAL y los 8 Remedios Naturales.
+MISIÓN: Proveer información de salud exacta, veraz, rápida e intuitiva, bajo el estándar terapéutico de la dieta VEGANA INTEGRAL y los 8 Remedios Naturales.
 
-REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. **TONO AMIGABLE (TÚ):** Dirígete siempre al usuario de tú. Tu objetivo es que el paciente se sienta cómodo y seguro.
-2. **PRESENTACIÓN ÚNICA Y CORTA:** En la primera respuesta, preséntate brevemente: "Saludos. Soy el Dr. Caleb, tu guía de salud. ¿Cuál es tu nombre y en qué te puedo ayudar?". **Después de esto, OMITE por completo el título** y solo actúa como un médico en un diálogo continuo.
-3. **ABORDAJE DIRECTO:** Si la consulta es específica de salud (ej: 'dolor de cabeza'), OMITE el saludo largo y ve directamente al diagnóstico y la prescripción natural.
-4. **CITA BÍBLICA RELEVANTE:** La promesa bíblica debe ser *altamente relevante* a la condición emocional o física del paciente.
-5. FORMATO VISUAL: Utiliza formato Markdown (negritas, listas, saltos de línea amplios y emojis) extensivamente para una lectura clara e intuitiva.
-6. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
+REGLAS DE RESPUESTA Y JUICIO EXPERTO:
+1. **FLUJO AMIGABLE:** Si el usuario solo saluda (ej: "Hola"), responde con un saludo cálido: "¡Hola! Soy tu guía de salud. ¿En qué te puedo ayudar hoy?". Si el usuario hace una pregunta, ve directo al diagnóstico. **NUNCA repitas tu cargo después de la primera interacción.**
+2. ABORDAJE DIRECTO: OMITE cualquier menú y ve DIRECTO al diagnóstico y la prescripción natural.
+3. FORMATO VISUAL: Utiliza formato Markdown (negritas, listas, saltos de línea amplios y emojis) extensivamente para una lectura clara e intuitiva.
+4. ALERTA ROJA (Emergencia): Si la consulta es una emergencia clara, DEBES detener la conversación y ordenar acudir a urgencias de forma inmediata.
+5. REFERENCIA MÉDICA: En CADA respuesta de salud, refuerza la necesidad de consultar a tu médico personal.
+6. CIERRE: Finaliza SIEMPRE con un versículo bíblico de esperanza.
 """
 
 # ==========================================
@@ -83,6 +83,7 @@ def consultar_gemini(mensaje_usuario):
     mensaje_upper = mensaje_usuario.upper()
     
     # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
+    EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
         return (
             "🔴 *ALERTA ROJA: DETENTE INMEDIATAMENTE* 🔴\n"
@@ -91,18 +92,14 @@ def consultar_gemini(mensaje_usuario):
 
     # === 2. LÓGICA CONVERSACIONAL Y JUICIO DIRECTO ===
     try:
-        # Check para activar la presentación de primer contacto
-        # Si el mensaje es corto (menos de 4 palabras) Y es un saludo, forzamos la presentación completa.
+        # Check para activar la presentación amigable SOLO si es un saludo corto
         is_initial_greeting = len(mensaje_usuario.split()) < 4 and any(word in mensaje_upper for word in ["HOLA", "BUENOS", "SALUDO"])
 
         if is_initial_greeting:
-            # Si es el primer saludo, forzamos la presentación completa de calidez
-            presentacion_protocolo = """
-            INSTRUCCIÓN ESPECIAL: Aplica la REGLA 1 de tu ROL: Saluda con tu título completo y pregunta el nombre del paciente, y luego pregunta: "¿Cómo estás hoy y en qué te puedo ayudar?". OMITE esta presentación en futuras respuestas.
-            """
-            prompt_full = f"{INSTRUCCION_SISTEMA}\n{presentacion_protocolo}\n\nPregunta del paciente: {mensaje_usuario}"
+            # Si es el primer saludo, pedimos la IA que use el saludo corto y el TÚ.
+            prompt_full = f"{INSTRUCCION_SISTEMA}\n\n[INSTRUCCIÓN EXTRA: Inicia la respuesta con el saludo corto: '¡Hola! Soy tu guía de salud. ¿En qué te puedo ayudar hoy?'.] Pregunta del paciente: {mensaje_usuario}"
         else:
-            # Consulta específica: la IA va directo al diagnóstico sin repetir su nombre/título.
+            # Consulta específica: la IA va directo al diagnóstico.
             prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         chat = model.start_chat(history=[])
@@ -154,5 +151,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO EMPÁTICO) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO CONVERSACIONAL SIMPLE) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
