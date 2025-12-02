@@ -23,19 +23,20 @@ except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
 # --- DATOS DE CONTACTO Y ENLACES (Variables de uso interno) ---
-WHATSAPP_CONTACTO_COCINA = "3122521843"
+# Usaremos este número para Orientación Psicológica temporalmente.
+WHATSAPP_CONTACTO_PSICOLOGIA = "3122521843" 
 RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (RESPUESTA ORGÁNICA)
+# 2. INSTRUCCIÓN MAESTRA (ROL: GENESIS)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
 ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CÁLIDO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
 1. **CONTESTA DE INMEDIATO:** Omite cualquier saludo o introducción en la respuesta clínica. Ve directo al diagnóstico.
-2. **RESPUESTA ORGÁNICA:** Cuando te saluden ("hola"), **genera un saludo humano y cálido, y preséntate como Genesis**. Inmediatamente después del saludo, presenta de forma muy conversacional el menú de servicios (Consulta, Cocina, Iglesias, Radio). Usa los enlaces de contacto en el menú.
+2. **RESPUESTA ORGÁNICA:** Cuando te saluden ("hola"), genera un saludo humano y cálido, y preséntate como Genesis. Inmediatamente después del saludo, presenta de forma muy conversacional el menú de servicios (Consulta, Psicología, Iglesias, Radio). Usa los enlaces de contacto en el menú.
 3. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
 4. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
 5. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
@@ -103,22 +104,22 @@ Tu vida es la prioridad.
     # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO (RESPUESTA HUMANA Y FORMATO IMPACTANTE) ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
         
-        # PROMPT ESPECÍFICO CON INSTRUCCIONES DE FORMATO AGRESIVO
+        # PROMPT ESPECÍFICO CON INSTRUCCIONES DE FORMATO VIRAL
         prompt_menu = f"""
         {INSTRUCCION_SISTEMA}
         
         TAREA ESPECÍFICA: El usuario ha escrito '{mensaje_usuario}'. Eres Genesis. Genera una respuesta de bienvenida cálida, natural y humana. Preséntate brevemente como Genesis, tu guía saludable. Inmediatamente después del saludo, presenta el menú de servicios.
         
         INSTRUCCIONES DE FORMATO ADICIONALES (¡OBLIGATORIAS!):
-        - Usa secciones de **título** con muchos emojis y negritas (ej: ⭐ [TÍTULO] ⭐).
-        - Usa **saltos de línea amplios** para separar cada sección del menú.
-        - El menú debe ser dinámico, moderno y profesional, como una **tarjeta de presentación digital** impactante.
+        - El formato debe ser **VISUALMENTE IMPACTANTE, MODERNO Y VIRAL**. Usa emojis de bloques y líneas horizontales (como guiones o asteriscos) para separar las secciones.
+        - Los enlaces deben ser **cliqueables** (ej: **[Texto del Link]({RADIO_LINK})**).
+        - El menú debe ser PRÁCTICO.
         
         MENÚ REQUERIDO:
-        1. **Consultoría:** Consulta Clínica, pregunta de salud.
-        2. **Cocina Natural:** Talleres de Cocina (Contacto: {WHATSAPP_CONTACTO_COCINA}).
-        3. **Comunidad:** Directorio de Iglesias ([Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})).
-        4. **Inspiración:** Radio Adventista ([AWR Colombia]({RADIO_LINK})).
+        1. **Consulta Clínica** (Pide la pregunta de salud).
+        2. **Orientación Psicológica** (Contacto: {WHATSAPP_CONTACTO_PSICOLOGIA}).
+        3. **Directorio de Iglesias** ([Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})).
+        4. **Radio Adventista** ([AWR Colombia]({RADIO_LINK})).
         """
         
         try:
@@ -127,19 +128,18 @@ Tu vida es la prioridad.
             return texto
         except Exception as e:
             print(f"❌ ERROR GEMINI (MENÚ ORGÁNICO): {e}")
-            # Si Gemini falla al generar el menú orgánico, revertimos a un mensaje simple
             return "👋 ¡Hola! Soy Genesis. Lo siento, tengo una pequeña dificultad técnica. Por favor, escribe tu pregunta de salud."
 
     # === 3. LÓGICA DE REGLA AUTOMATIZADA (Fuera de la IA para mayor fiabilidad) ===
     
-    # Palabras clave para cursos de cocina
-    keywords_cocina = ["CURSO", "COCINA", "RECETAS", "WHATSAPP", "NATURAL", "PLANTAS"]
-    if any(k in mensaje_limpio for k in keywords_cocina):
+    # Palabras clave para Orientación Psicológica
+    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
+    if any(k in mensaje_limpio for k in keywords_psicologia):
         return (
-            "🎉 *¡Genesis te guía!* Has elegido nuestro curso de **Cocina Natural y Estilo de Vida Saludable**.\n\n"
-            "Para inscripción y detalles, escribe a este WhatsApp:\n"
-            f"📲 **{WHATSAPP_CONTACTO_COCINA}**\n\n"
-            "¡Tu cuerpo es templo del Espíritu Santo! (1 Corintios 6:19)."
+            "🧠 *¡Tu bienestar mental es la prioridad!* Te asistiremos con **Orientación Psicológica**.\n\n"
+            "Para iniciar la sesión de apoyo emocional, comunícate al:\n"
+            f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
+            "«El descanso del cuerpo y la mente es vital para la salud espiritual.»"
         )
         
     # Palabras clave para la radio
