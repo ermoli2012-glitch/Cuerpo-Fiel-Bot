@@ -28,10 +28,10 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA PROFESIONAL (PRESENTACIÓN ABREVIADA)
+# 2. INSTRUCCIÓN MAESTRA (ROL: GENESIS)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud. Tu estilo es PROFESIONAL, INSPIRADOR y CENTRADO EN LA FE. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es MODERNO, JUVENIL, DINÁMICO, AMIGABLE Y CENTRADO EN LA FE. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
 1. Siempre responde directamente a la pregunta de salud del usuario con diagnóstico y prescripción natural.
@@ -45,20 +45,19 @@ REGLAS DE RESPUESTA:
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # --- MENÚ DE SERVICIOS (Texto para la activación con "hola") ---
-# Los hipervínculos aquí serán visibles en la respuesta del bot si el formato se renderiza correctamente
 MENU_SERVICIOS = f"""
-✨ **BIENVENIDO/A. SOY EL DR. CALEB** ✨
-*Tu Guía de Salud del Ministerio Adventista.*
+✨ **¡HOLA! SOY GENESIS** ✨
+*Tu guía saludable del Ministerio de Salud Adventista del distrito Redencion.*
 
-Mi propósito es asistirte en tu camino hacia un **Estilo de Vida Saludable** y completo, basado en los principios de Dios.
+¡Bienvenidos! Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable** basado en los principios de Dios.
 
-**📋 SERVICIOS DE SALUD INTEGRAL**
-* **🩺 Consultoría Clínica:** Pregúntame sobre cualquier duda de salud o diagnóstico natural.
-* **🥦 Talleres de Cocina:** Pregunta por nuestro curso de **Cocina Natural y Estilo de Vida Saludable** y obtén el contacto.
-* **🗺️ Directorio de la Fe:** Busca Centros de Vida Sana o Iglesias Adventistas aquí: **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**
+**🚀 NUESTROS SERVICIOS**
+* **🩺 Consulta Rápida:** Pregúntame sobre cualquier síntoma o tratamiento natural.
+* **🥦 Talleres de Cocina:** ¡Transforma tu cocina! Pregunta por el curso y obtén el contacto.
+* **🗺️ Encuentra tu Comunidad:** **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**
 * **📻 Voz de Esperanza:** Escucha la Radio Adventista: **[AWR Colombia]({RADIO_LINK})**
 
-*¡Confía en el poder de la restauración!*
+*¡Empecemos tu viaje a la salud!*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -124,8 +123,8 @@ Tu vida es la prioridad.
     keywords_cocina = ["CURSO", "COCINA", "RECETAS", "WHATSAPP", "NATURAL", "PLANTAS"]
     if any(k in mensaje_limpio for k in keywords_cocina):
         return (
-            "✨ *¡Una gran decisión!* Te felicito por elegir nuestro curso de **Cocina Natural y Estilo de Vida Saludable**.\n\n"
-            "Para inscribirte y dar el primer paso hacia la salud integral, escribe a este WhatsApp:\n"
+            "🎉 *¡Genesis te guía!* Has elegido nuestro curso de **Cocina Natural y Estilo de Vida Saludable**.\n\n"
+            "Para inscripción y detalles, escribe a este WhatsApp:\n"
             f"📲 **{WHATSAPP_CONTACTO_COCINA}**\n\n"
             "¡Tu cuerpo es templo del Espíritu Santo! (1 Corintios 6:19)."
         )
@@ -161,7 +160,7 @@ Tu vida es la prioridad.
     except Exception as e:
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
         return """
-⚠️ Lo siento, Dr. Caleb está en una consulta crítica.
+⚠️ Lo siento, Genesis está en una consulta crítica.
 Intenta de nuevo en un momento."
 """
 
@@ -196,5 +195,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
+    print("🚀 GENESIS (GUÍA SALUDABLE) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
