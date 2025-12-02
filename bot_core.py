@@ -3,8 +3,6 @@ import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
-# ❌ IMPORTACIÓN ELIMINADA: from google.generativeai.types import ChatSession 
-# Esta línea causó el ImportError en el entorno de Render.
 
 app = Flask(__name__)
 
@@ -44,24 +42,26 @@ REGLAS DE RESPUESTA Y FLUJO FINAL:
 """
 
 # Diccionario para almacenar las sesiones de chat de Gemini por número de celular (memoria).
-chat_sessions = {} # Nota: Se mantiene el diccionario sin el tipado explícito que causó el error.
+chat_sessions = {} 
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 
 # ==========================================
-# 3. BASE DE DATOS Y MEMORIA
+# 3. BASE DE DATOS Y MEMORIA (CORRECCIÓN CRÍTICA DE CONEXIÓN)
 # ==========================================
 def obtener_conexion():
-    """Intenta establecer conexión con la base de datos."""
+    """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
+    database_url = os.environ.get('DATABASE_URL')
+    
     try:
-        database_url = os.environ.get('DATABASE_URL')
         if database_url:
-            # Conexión para entorno de producción (Render/otros)
+            # Opción 1: Producción (Render) usando DATABASE_URL
             return psycopg2.connect(database_url, sslmode='require')
-        # Conexión para entorno local de desarrollo
-        return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
+        else:
+            # Opción 2: Desarrollo local (solo si DATABASE_URL no existe)
+            return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
    
     except Exception as e:
         print(f"❌ Error al conectar a la DB: {e}")
@@ -69,6 +69,7 @@ def obtener_conexion():
 
 def guardar_historial(celular, mensaje, respuesta):
     """Guarda la interacción en la base de datos."""
+    # Nota: Si la conexión falla, solo se imprime el error, pero el chat continúa.
     conn = obtener_conexion()
     if conn:
         try:
@@ -89,13 +90,11 @@ def guardar_historial(celular, mensaje, respuesta):
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la sesión de chat con memoria y consulta a Gemini.
-    Usa el celular como clave para mantener la conversación.
     """
     mensaje_upper = mensaje_usuario.upper()
     
     # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
     if any(keyword in mensaje_upper for keyword in EMERGENCY_KEYWORDS):
-        # Usando comillas triples (""" """) para evitar errores de sintaxis en cadenas multilínea.
         return """
 🔴 *ALERTA ROJA: DETENTE INMEDIATAMENTE* 🔴
 
@@ -108,10 +107,14 @@ Tu vida es la prioridad.
 
     # === 2. LÓGICA NORMAL (IA CON JUICIO Y MEMORIA) ===
     try:
+        # 💡 CORRECCIÓN CRÍTICA 1: Mover la instrucción de sistema al objeto 'config'.
+        configuracion_ia = {
+            "system_instruction": INSTRUCCION_SISTEMA_SIN_SALUDO
+        }
+
         if celular not in chat_sessions:
             print(f"🆕 Iniciando nueva sesión de chat para {celular}")
             
-            # Se usa un historial inicial para forzar el saludo solo en el primer mensaje.
             historial_inicial = [
                 {"role": "user", "parts": [
                     "A partir de ahora, usa estas instrucciones en toda nuestra conversación."
@@ -121,14 +124,12 @@ Tu vida es la prioridad.
                 ]}
             ]
             
-            # El "system_instruction" mantiene el rol y reglas para el resto del chat.
             chat = model.start_chat(
                 history=historial_inicial,
-                system_instruction=INSTRUCCION_SISTEMA_SIN_SALUDO
+                config=configuracion_ia # <--- ¡CORRECCIÓN AQUÍ!
             )
             chat_sessions[celular] = chat
         else:
-            # Recuperamos la sesión existente.
             chat = chat_sessions[celular]
             print(f"🧠 Sesión de chat recuperada para {celular}")
 
@@ -140,11 +141,9 @@ Tu vida es la prioridad.
         return texto
         
     except Exception as e:
-        # En caso de error crítico de la API, se borra la sesión para intentar de nuevo.
         if celular in chat_sessions:
             del chat_sessions[celular]
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        # Usando comillas triples para el mensaje de error también.
         return """
 ⚠️ Lo siento, Dr. Caleb está en una consulta crítica.
 Intenta de nuevo en un momento.
