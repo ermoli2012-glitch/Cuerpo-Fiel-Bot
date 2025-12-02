@@ -5,76 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dr. Caleb - Guía de Salud Integral</title>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f4f7f6;
-            color: #333;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            min-height: 100vh;
-        }
-        .main-content {
-            flex-grow: 1; /* Permite que el contenido principal crezca */
-            display: flex;
-            flex-direction: column;
-            justify-content: center; /* Centra verticalmente */
-            align-items: center;
-            width: 100%;
-            padding: 20px;
-        }
-        .bot-message-container {
-            max-width: 600px;
-            width: 100%;
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
-            margin-bottom: 20px;
-        }
-        .bot-message {
-            background-color: #f0f7f4;
-            padding: 15px;
-            border-radius: 10px;
-            line-height: 1.6;
-            font-size: 1.1em;
-            color: #1a535c;
-        }
-        strong {
-            color: #00796b;
-        }
-        /* Nueva sección para la entrada de texto (el pie de la app) */
-        .chat-input-container {
-            width: 100%;
-            max-width: 600px;
-            position: fixed; /* Lo fija al fondo de la página */
-            bottom: 0;
-            padding: 15px 20px;
-            background-color: white;
-            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
-            border-top: 1px solid #ddd;
-            display: flex;
-            justify-content: center;
-        }
-        .chat-input-container input {
-            padding: 10px;
-            width: 80%;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            font-size: 1em;
-            margin-right: 10px;
-        }
-        .chat-input-container button {
-            padding: 10px 15px;
-            border: none;
-            background-color: #00796b;
-            color: white;
-            border-radius: 5px;
-            cursor: pointer;
-            font-weight: bold;
-        }
+        /* Estilos CSS anteriores omitidos por brevedad */
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
+        .main-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; width: 100%; padding: 20px; padding-bottom: 90px; } /* Ajuste de padding-bottom */
+        .bot-message-container { max-width: 600px; width: 100%; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); margin-bottom: 20px; }
+        .bot-message { background-color: #f0f7f4; padding: 15px; border-radius: 10px; line-height: 1.6; font-size: 1.1em; color: #1a535c; white-space: pre-wrap; } /* white-space: pre-wrap para saltos de línea */
+        strong { color: #00796b; }
+        /* Chat Input Styles */
+        .chat-input-container { width: 100%; max-width: 600px; position: fixed; bottom: 0; padding: 15px 20px; background-color: white; box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05); border-top: 1px solid #ddd; display: flex; }
+        .chat-input-container input { padding: 10px; flex-grow: 1; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; margin-right: 10px; }
+        .chat-input-container button { padding: 10px 15px; border: none; background-color: #00796b; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .user-message { background-color: #e6f3ff; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: right; }
+        .bot-response { background-color: #f0f7f4; padding: 10px; border-radius: 8px; margin: 10px 0; text-align: left; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -85,7 +27,7 @@
             </div>
     </div>
     
-    <div id="messages-display">
+    <div id="messages-display" style="width: 100%; max-width: 600px;">
         </div>
 
 </div>
@@ -97,7 +39,6 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', (event) => {
-        // Mensaje de bienvenida profesional
         const welcomeText = "👋 **¡Saludos! Bienvenido/a al Ministerio de Salud Adventista.** Soy el Dr. Caleb, tu guía. \n\n" + 
                             "Para obtener nuestro menú de servicios e iniciar tu consulta clínica, \n" + 
                             "por favor, **escribe HOLA** y presiona Enviar.";
@@ -111,23 +52,67 @@
         }
 
         welcomeDiv.innerHTML = renderMarkdown(welcomeText);
-    });
 
-    // Esta función simularía el envío a tu ruta /chat
-    function sendMessage() {
+        // Permite enviar con la tecla Enter
+        document.getElementById('chat-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+    });
+    
+    // Función para añadir mensajes al DOM
+    function displayMessage(sender, text) {
+        const messagesDiv = document.getElementById('messages-display');
+        const newMessage = document.createElement('div');
+        newMessage.className = sender === 'user' ? 'user-message' : 'bot-response';
+        
+        // Renderizar Markdown para la respuesta del bot
+        function renderBotMarkdown(text) {
+            text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+            // Reemplazar saltos de línea para el formato de chat
+            return text.replace(/\n/g, '<br>');
+        }
+        
+        newMessage.innerHTML = sender === 'user' ? text : renderBotMarkdown(text);
+        messagesDiv.appendChild(newMessage);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight; // Auto-scroll
+    }
+
+    // FUNCIÓN CRÍTICA QUE CONECTA EL FRONTEND CON LA RUTA DE FLASK
+    async function sendMessage() {
         const input = document.getElementById('chat-input');
         const message = input.value;
         if (!message.trim()) return;
 
-        // Limpia la caja de texto
+        // Mostrar mensaje del usuario inmediatamente
+        displayMessage('user', message);
         input.value = '';
 
-        // *** IMPORTANTE: IMPLEMENTACIÓN DE BACKEND ***
-        // Este es el punto donde el JavaScript debería enviar el mensaje a tu ruta Flask /chat 
-        // y mostrar la respuesta en #messages-display. 
-        // Esto requiere más código JS y un formulario, pero la presentación ya está correcta.
+        try {
+            // Usamos fetch para enviar la solicitud POST a tu ruta /chat
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                // El cuerpo debe coincidir con lo que Flask espera (mensaje)
+                body: JSON.stringify({ mensaje: message })
+            });
 
-        console.log("Mensaje enviado (simulado):", message);
+            const data = await response.json();
+            
+            if (data.respuesta) {
+                // Mostrar la respuesta del bot
+                displayMessage('bot', data.respuesta);
+            } else {
+                displayMessage('bot', '⚠️ Error: No se recibió una respuesta válida del servidor.');
+            }
+
+        } catch (error) {
+            console.error('Error al conectar con la API:', error);
+            displayMessage('bot', '❌ Lo siento, la conexión falló. Intenta de nuevo más tarde.');
+        }
     }
 </script>
 
