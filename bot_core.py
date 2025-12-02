@@ -22,26 +22,37 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# INSTRUCCIÓN MAESTRA ORIGINAL (Causa el saludo repetitivo)
+# =========================================================================
+# 2. INSTRUCCIÓN MAESTRA MODIFICADA (PRIORIZANDO EL MENÚ DE SERVICIOS)
+# =========================================================================
+
+# La IA va a responder esto en CADA interacción (saludo repetitivo y menú).
 INSTRUCCION_SISTEMA = """
 ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
+
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
 1. ROL: Médico Especialista, Nutricionista y Naturista.
 2. DIETA: Estrictamente VEGANA, INTEGRAL y BASADA EN PLANTAS.
 3. TRIAGE: Mantén la regla de Alerta Roja si detectas emergencia extrema.
+
 REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. INTRODUCCIÓN: En cada respuesta, inicia con un saludo breve y tu rol: "Saludos. Soy el Dr. Caleb, tu guía de salud..." (Omitiendo los cargos largos).
-2. FLUJO: **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
-3. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado (ej: Estrés -> Reposo; Dieta -> Cuerpo Templo).
-4. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
-5. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
+1. INTRODUCCIÓN: **¡ESTA REGLA ES LA PRIORIDAD MÁXIMA!** En cada respuesta, inicia con un saludo breve y tu rol: "Saludos. Soy el Dr. Caleb, tu guía de salud...", e **INMEDIATAMENTE PRESENTA EL MENÚ DE SERVICIOS** antes de responder la pregunta del usuario.
+2. MENÚ DE SERVICIOS: Presenta esta información usando **negritas y emojis**:
+    * **Servicios de Salud:** Provee información clínica (diagnóstico y prescripción natural).
+    * **Cursos Personalizados:** Ofrece enlaces y detalles sobre cursos personalizados de salud.
+    * **Centros y Comunidades:** Proporciona datos de contacto para Centros de Vida Sana e Iglesias Adventistas cercanas.
+    * **Radio Adventista (AWR):** Incluye la invitación con el link de la radio: [https://awr.org/es/colombia](https://awr.org/es/colombia).
+3. FLUJO: Después de presentar el menú, **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
+4. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado.
+5. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
+6. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
-# 2. BASE DE DATOS Y MEMORIA 
+# 3. BASE DE DATOS Y MEMORIA 
 # ==========================================
 def obtener_conexion():
     """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
@@ -75,10 +86,10 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 3. CEREBRO DE LA APLICACIÓN (FLUJO DIRECTO ORIGINAL) ---
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO DIRECTO ORIGINAL) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
-    Consulta a Gemini sin usar memoria de sesión.
+    Consulta a Gemini sin usar memoria de sesión, usando la Instrucción Maestra completa.
     """
     mensaje_upper = mensaje_usuario.upper()
     
@@ -96,9 +107,10 @@ Tu vida es la prioridad.
 
     # === 2. LÓGICA NORMAL (IA CON JUICIO) ===
     try:
-        # Usa generate_content que no tiene problemas de 'config' o 'system_instruction'
+        # Aquí se envía la Instrucción Maestra completa con el menú de servicios
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
+        # Usamos generate_content
         response = model.generate_content(prompt_full)
      
         # Limpieza de formato y retorno
@@ -113,7 +125,7 @@ Intenta de nuevo en un momento.
 
 
 # ==========================================
-# 4. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# 5. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
@@ -121,7 +133,6 @@ def home():
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    # El celular se obtiene para el historial de DB
     celular_raw = request.values.get('From', 'Web User')
     celular = celular_raw.replace('whatsapp:', '')
     if celular.startswith('+'):
@@ -131,7 +142,6 @@ def chat():
     
     print(f"📩 Recibido de {celular}: {mensaje_in}")
 
-    # Notar: La función consultar_gemini ya no necesita la variable celular en este flujo
     respuesta = consultar_gemini(celular, mensaje_in)
     
     guardar_historial(celular, mensaje_in, respuesta)
