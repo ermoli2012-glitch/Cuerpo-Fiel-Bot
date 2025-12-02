@@ -23,8 +23,7 @@ except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
 # --- DATOS DE CONTACTO Y ENLACES (Variables de uso interno) ---
-# Usaremos este número para Orientación Psicológica temporalmente.
-WHATSAPP_CONTACTO_PSICOLOGIA = "3122521843" 
+WHATSAPP_CONTACTO_PSICOLOGIA = "3122521843"
 RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
@@ -36,17 +35,33 @@ ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del dist
 
 REGLAS DE RESPUESTA:
 1. **CONTESTA DE INMEDIATO:** Omite cualquier saludo o introducción en la respuesta clínica. Ve directo al diagnóstico.
-2. **RESPUESTA ORGÁNICA:** Cuando te saluden ("hola"), genera un saludo humano y cálido, y preséntate como Genesis. Inmediatamente después del saludo, presenta de forma muy conversacional el menú de servicios (Consulta, Psicología, Iglesias, Radio). Usa los enlaces de contacto en el menú.
-3. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
-4. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
-5. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
-6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
+2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
+3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
+4. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
+5. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
+# --- MENÚ DE SERVICIOS (Texto para la activación con "hola" o "menu") ---
+MENU_SERVICIOS = f"""
+⭐ **¡HOLA! SOY GENESIS** ⭐
+*Tu guía saludable del Distrito Redención.*
 
+🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
+
+----------------------------------------
+** Selecciona una opción para empezar:**
+----------------------------------------
+
+* **1️⃣ CONSULTA CLÍNICA:** Pregúntame sobre cualquier síntoma o tratamiento natural.
+* **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
+* **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
+* **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
+
+*Responde solo con el número (ej: 1)*
+"""
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
 # ==========================================
@@ -101,39 +116,51 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO (RESPUESTA HUMANA Y FORMATO IMPACTANTE) ===
+    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
+        return MENU_SERVICIOS
         
-        # PROMPT ESPECÍFICO CON INSTRUCCIONES DE FORMATO VIRAL
-        prompt_menu = f"""
-        {INSTRUCCION_SISTEMA}
-        
-        TAREA ESPECÍFICA: El usuario ha escrito '{mensaje_usuario}'. Eres Genesis. Genera una respuesta de bienvenida cálida, natural y humana. Preséntate brevemente como Genesis, tu guía saludable. Inmediatamente después del saludo, presenta el menú de servicios.
-        
-        INSTRUCCIONES DE FORMATO ADICIONALES (¡OBLIGATORIAS!):
-        - El formato debe ser **VISUALMENTE IMPACTANTE, MODERNO Y VIRAL**. Usa emojis de bloques y líneas horizontales (como guiones o asteriscos) para separar las secciones.
-        - Los enlaces deben ser **cliqueables** (ej: **[Texto del Link]({RADIO_LINK})**).
-        - El menú debe ser PRÁCTICO.
-        
-        MENÚ REQUERIDO:
-        1. **Consulta Clínica** (Pide la pregunta de salud).
-        2. **Orientación Psicológica** (Contacto: {WHATSAPP_CONTACTO_PSICOLOGIA}).
-        3. **Directorio de Iglesias** ([Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})).
-        4. **Radio Adventista** ([AWR Colombia]({RADIO_LINK})).
-        """
-        
-        try:
-            response = model.generate_content(prompt_menu)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            print(f"❌ ERROR GEMINI (MENÚ ORGÁNICO): {e}")
-            return "👋 ¡Hola! Soy Genesis. Lo siento, tengo una pequeña dificultad técnica. Por favor, escribe tu pregunta de salud."
-
-    # === 3. LÓGICA DE REGLA AUTOMATIZADA (Fuera de la IA para mayor fiabilidad) ===
+    # === 3. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ) ===
     
-    # Palabras clave para Orientación Psicológica
-    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
+    # 1. CONSULTA CLÍNICA
+    if mensaje_limpio == "1":
+        return (
+            "🩺 **Consulta Clínica: Pregunta al instante**\n\n"
+            "¡Listo/a! Escribe tu pregunta sobre cualquier síntoma, condición o necesidad de tratamiento natural. "
+            "Recuerda que mis consejos se basan en la dieta saludable y los 8 Remedios Naturales."
+        )
+
+    # 2. APOYO PSICOLÓGICO
+    if mensaje_limpio == "2":
+        return (
+            "🧠 **Apoyo Psicológico: Paz Mental**\n\n"
+            "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
+            "estrés o ansiedad, comunícate al:\n"
+            f"📲 **WhatsApp: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
+            "«El reposo mental es una parte esencial de la adoración a Dios.»"
+        )
+        
+    # 3. COMUNIDAD DE FE
+    if mensaje_limpio == "3":
+        return (
+            "📍 **Comunidad de Fe: Encuentra tu Hogar**\n\n"
+            "Para un crecimiento integral, es vital congregarse. Usa el siguiente enlace para buscar "
+            "tu iglesia Adventista o Centro de Vida Sana más cercano:\n"
+            f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**"
+        )
+        
+    # 4. RADIO ADVENTISTA
+    if mensaje_limpio == "4":
+        return (
+            "📻 **Voz de Esperanza: Inspiración Diaria**\n\n"
+            "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
+            f"🔗 **[AWR Colombia]({RADIO_LINK})**"
+        )
+
+    # === 4. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
+    
+    # Palabras clave para Orientación Psicológica (directa, sin el número 2)
+    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "MENTAL"]
     if any(k in mensaje_limpio for k in keywords_psicologia):
         return (
             "🧠 *¡Tu bienestar mental es la prioridad!* Te asistiremos con **Orientación Psicológica**.\n\n"
@@ -142,7 +169,7 @@ Tu vida es la prioridad.
             "«El descanso del cuerpo y la mente es vital para la salud espiritual.»"
         )
         
-    # Palabras clave para la radio
+    # Palabras clave para la radio (directa, sin el número 4)
     keywords_radio = ["RADIO", "AWR", "ESCUCHAR", "ESPERANZA"]
     if any(k in mensaje_limpio for k in keywords_radio):
         return (
@@ -151,7 +178,7 @@ Tu vida es la prioridad.
             "«El que cree en mí, aunque esté muerto, vivirá» (Juan 11:25)."
         )
         
-    # Palabras clave para iglesias/directorio
+    # Palabras clave para iglesias/directorio (directa, sin el número 3)
     keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO"]
     if any(k in mensaje_limpio for k in keywords_iglesias):
         return (
@@ -160,9 +187,9 @@ Tu vida es la prioridad.
             "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
         )
 
-
-    # === 4. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
+    # === 5. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
+        # La IA va directo al grano
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
@@ -178,7 +205,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 5. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# 6. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
