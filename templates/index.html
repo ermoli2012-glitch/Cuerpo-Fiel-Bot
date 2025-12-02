@@ -8,69 +8,127 @@
         body {
             font-family: Arial, sans-serif;
             margin: 0;
-            padding: 20px;
+            padding: 0;
             background-color: #f4f7f6;
             color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
         }
-        .chat-container {
+        .main-content {
+            flex-grow: 1; /* Permite que el contenido principal crezca */
+            display: flex;
+            flex-direction: column;
+            justify-content: center; /* Centra verticalmente */
+            align-items: center;
+            width: 100%;
+            padding: 20px;
+        }
+        .bot-message-container {
             max-width: 600px;
-            margin: 0 auto;
+            width: 100%;
             background: white;
             padding: 25px;
             border-radius: 12px;
             box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15);
+            margin-bottom: 20px;
         }
         .bot-message {
-            background-color: #f0f7f4; /* Color suave para el contexto Adventista */
+            background-color: #f0f7f4;
             padding: 15px;
             border-radius: 10px;
-            margin-bottom: 25px;
             line-height: 1.6;
             font-size: 1.1em;
-            color: #1a535c; /* Tono profesional */
-        }
-        .instruction {
-            font-size: 1em;
-            color: #708090;
-            text-align: center;
-            padding-top: 10px;
+            color: #1a535c;
         }
         strong {
-            color: #00796b; /* Color de énfasis */
+            color: #00796b;
+        }
+        /* Nueva sección para la entrada de texto (el pie de la app) */
+        .chat-input-container {
+            width: 100%;
+            max-width: 600px;
+            position: fixed; /* Lo fija al fondo de la página */
+            bottom: 0;
+            padding: 15px 20px;
+            background-color: white;
+            box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05);
+            border-top: 1px solid #ddd;
+            display: flex;
+            justify-content: center;
+        }
+        .chat-input-container input {
+            padding: 10px;
+            width: 80%;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            font-size: 1em;
+            margin-right: 10px;
+        }
+        .chat-input-container button {
+            padding: 10px 15px;
+            border: none;
+            background-color: #00796b;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-<div class="chat-container">
-    <div class="bot-message" id="welcome-message">
+<div class="main-content">
+    <div class="bot-message-container">
+        <div class="bot-message" id="welcome-message">
+            </div>
+    </div>
+    
+    <div id="messages-display">
         </div>
 
-    <div class="instruction">
-        *Escribe tu mensaje en la aplicación de chat (WhatsApp/Telegram) para iniciar la conversación.*
-    </div>
+</div>
+
+<div class="chat-input-container">
+    <input type="text" id="chat-input" placeholder="Escribe HOLA para ver el menú...">
+    <button onclick="sendMessage()">Enviar</button>
 </div>
 
 <script>
     document.addEventListener('DOMContentLoaded', (event) => {
-        // Mensaje que aparece automáticamente al abrir la URL
+        // Mensaje de bienvenida profesional
         const welcomeText = "👋 **¡Saludos! Bienvenido/a al Ministerio de Salud Adventista.** Soy el Dr. Caleb, tu guía. \n\n" + 
                             "Para obtener nuestro menú de servicios e iniciar tu consulta clínica, \n" + 
-                            "por favor, **escribe HOLA** en el chat.";
+                            "por favor, **escribe HOLA** y presiona Enviar.";
 
         const welcomeDiv = document.getElementById('welcome-message');
         
-        // Función simple para renderizar el formato Markdown básico
         function renderMarkdown(text) {
-            // Reemplaza **negritas**
             text = text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-            // Reemplaza saltos de línea por <br>
             text = text.replace(/\n/g, '<br>');
             return text;
         }
 
         welcomeDiv.innerHTML = renderMarkdown(welcomeText);
     });
+
+    // Esta función simularía el envío a tu ruta /chat
+    function sendMessage() {
+        const input = document.getElementById('chat-input');
+        const message = input.value;
+        if (!message.trim()) return;
+
+        // Limpia la caja de texto
+        input.value = '';
+
+        // *** IMPORTANTE: IMPLEMENTACIÓN DE BACKEND ***
+        // Este es el punto donde el JavaScript debería enviar el mensaje a tu ruta Flask /chat 
+        // y mostrar la respuesta en #messages-display. 
+        // Esto requiere más código JS y un formulario, pero la presentación ya está correcta.
+
+        console.log("Mensaje enviado (simulado):", message);
+    }
 </script>
 
 </body>
