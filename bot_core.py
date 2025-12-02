@@ -3,7 +3,8 @@ import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
-from google.generativeai.types import ChatSession # Para tipado claro
+# ❌ IMPORTACIÓN ELIMINADA: from google.generativeai.types import ChatSession 
+# Esta línea causó el ImportError en el entorno de Render.
 
 app = Flask(__name__)
 
@@ -43,7 +44,7 @@ REGLAS DE RESPUESTA Y FLUJO FINAL:
 """
 
 # Diccionario para almacenar las sesiones de chat de Gemini por número de celular (memoria).
-chat_sessions = {} # type: dict[str, ChatSession] 
+chat_sessions = {} # Nota: Se mantiene el diccionario sin el tipado explícito que causó el error.
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
@@ -188,5 +189,4 @@ def chat():
 
 if __name__ == '__main__':
     print("🚀 DR. CALEB (FLUJO DIRECTO Y CON MEMORIA) - ACTIVO")
-    # Asegúrate de que el archivo 'index.html' exista si usas la ruta '/'
     app.run(port=os.environ.get('PORT', 5000), debug=True)
