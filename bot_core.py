@@ -22,34 +22,26 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-
-# =========================================================================
-# 2. INSTRUCCIÓN MAESTRA AJUSTADA Y MEMORIA GLOBAL
-# =========================================================================
-
-# La instrucción maestra ELIMINA la REGLA de saludo, pues se maneja en el historial.
-INSTRUCCION_SISTEMA_SIN_SALUDO = """
+# INSTRUCCIÓN MAESTRA ORIGINAL (Causa el saludo repetitivo)
+INSTRUCCION_SISTEMA = """
 ROL: Eres el Dr. Caleb, Médico Especialista en Nutrición y Guía de Salud del Ministerio de Salud Adventista del Séptimo Día. Tu función es proveer información **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico de la **dieta VEGANA INTEGRAL** y los **8 Remedios Naturales**.
 BASE DE CONOCIMIENTO Y JUICIO CLÍNICO:
 1. ROL: Médico Especialista, Nutricionista y Naturista.
 2. DIETA: Estrictamente VEGANA, INTEGRAL y BASADA EN PLANTAS.
 3. TRIAGE: Mantén la regla de Alerta Roja si detectas emergencia extrema.
 REGLAS DE RESPUESTA Y FLUJO FINAL:
-1. FLUJO: **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
-2. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado (ej: Estrés -> Reposo; Dieta -> Cuerpo Templo).
-3. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
-4. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
+1. INTRODUCCIÓN: En cada respuesta, inicia con un saludo breve y tu rol: "Saludos. Soy el Dr. Caleb, tu guía de salud..." (Omitiendo los cargos largos).
+2. FLUJO: **Analiza la pregunta y ve directo al diagnóstico y la prescripción natural.**
+3. ENFOQUE ESPIRITUAL: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado (ej: Estrés -> Reposo; Dieta -> Cuerpo Templo).
+4. FORMATO: Usa negritas, saltos de línea amplios y emojis de forma EXTENSIVA.
+5. REFERENCIA MÉDICA: En CADA respuesta, refuerza la necesidad de consultar a tu médico personal.
 """
-
-# Diccionario para almacenar las sesiones de chat de Gemini por número de celular (memoria).
-chat_sessions = {} 
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
-
 # ==========================================
-# 3. BASE DE DATOS Y MEMORIA (CORRECCIÓN CRÍTICA DE CONEXIÓN)
+# 2. BASE DE DATOS Y MEMORIA 
 # ==========================================
 def obtener_conexion():
     """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
@@ -57,10 +49,8 @@ def obtener_conexion():
     
     try:
         if database_url:
-            # Opción 1: Producción (Render) usando DATABASE_URL
             return psycopg2.connect(database_url, sslmode='require')
         else:
-            # Opción 2: Desarrollo local (solo si DATABASE_URL no existe)
             return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
    
     except Exception as e:
@@ -69,7 +59,6 @@ def obtener_conexion():
 
 def guardar_historial(celular, mensaje, respuesta):
     """Guarda la interacción en la base de datos."""
-    # Nota: Si la conexión falla, solo se imprime el error, pero el chat continúa.
     conn = obtener_conexion()
     if conn:
         try:
@@ -86,10 +75,10 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 4. CEREBRO DE LA APLICACIÓN (LÓGICA CON FLUJO DIRECTO Y MEMORIA) ---
+# --- 3. CEREBRO DE LA APLICACIÓN (FLUJO DIRECTO ORIGINAL) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
-    Gestiona la sesión de chat con memoria y consulta a Gemini.
+    Consulta a Gemini sin usar memoria de sesión.
     """
     mensaje_upper = mensaje_usuario.upper()
     
@@ -105,44 +94,17 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA NORMAL (IA CON JUICIO Y MEMORIA) ===
+    # === 2. LÓGICA NORMAL (IA CON JUICIO) ===
     try:
-        # 💡 CORRECCIÓN CRÍTICA 1: Mover la instrucción de sistema al objeto 'config'.
-        configuracion_ia = {
-            "system_instruction": INSTRUCCION_SISTEMA_SIN_SALUDO
-        }
-
-        if celular not in chat_sessions:
-            print(f"🆕 Iniciando nueva sesión de chat para {celular}")
-            
-            historial_inicial = [
-                {"role": "user", "parts": [
-                    "A partir de ahora, usa estas instrucciones en toda nuestra conversación."
-                ]},
-                {"role": "model", "parts": [
-                    "Saludos. Soy el Dr. Caleb, tu guía de salud. ¿En qué puedo ayudarte hoy?"
-                ]}
-            ]
-            
-            chat = model.start_chat(
-                history=historial_inicial,
-                config=configuracion_ia # <--- ¡CORRECCIÓN AQUÍ!
-            )
-            chat_sessions[celular] = chat
-        else:
-            chat = chat_sessions[celular]
-            print(f"🧠 Sesión de chat recuperada para {celular}")
-
-        # Enviamos el mensaje del usuario a la sesión de chat activa.
-        response = chat.send_message(mensaje_usuario)
+        # Usa generate_content que no tiene problemas de 'config' o 'system_instruction'
+        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
+        
+        response = model.generate_content(prompt_full)
      
-        # Limpieza de formato y retorno (adecuado para Twilio/WhatsApp)
+        # Limpieza de formato y retorno
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
-        
     except Exception as e:
-        if celular in chat_sessions:
-            del chat_sessions[celular]
         print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
         return """
 ⚠️ Lo siento, Dr. Caleb está en una consulta crítica.
@@ -151,34 +113,29 @@ Intenta de nuevo en un momento.
 
 
 # ==========================================
-# 5. RUTAS WEB Y DE WHATSAPP
+# 4. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
-    """Ruta de inicio para verificar que el servicio está activo."""
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    """Maneja los mensajes entrantes de WhatsApp o de la web."""
-    # Obtener y limpiar el identificador del usuario (celular)
+    # El celular se obtiene para el historial de DB
     celular_raw = request.values.get('From', 'Web User')
     celular = celular_raw.replace('whatsapp:', '')
     if celular.startswith('+'):
         celular = celular[1:]
         
-    # Obtener el mensaje entrante
     mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
     
     print(f"📩 Recibido de {celular}: {mensaje_in}")
 
-    # Consultar a Gemini y obtener la respuesta
+    # Notar: La función consultar_gemini ya no necesita la variable celular en este flujo
     respuesta = consultar_gemini(celular, mensaje_in)
     
-    # Guardar el historial de la interacción
     guardar_historial(celular, mensaje_in, respuesta)
 
-    # Devolver la respuesta según la fuente (Twilio/XML o Web/JSON)
     if 'whatsapp' in celular_raw.lower():
         resp = MessagingResponse()
         resp.message(respuesta)
@@ -187,5 +144,5 @@ def chat():
         return jsonify({"respuesta": respuesta})
 
 if __name__ == '__main__':
-    print("🚀 DR. CALEB (FLUJO DIRECTO Y CON MEMORIA) - ACTIVO")
+    print("🚀 DR. CALEB (FLUJO DIRECTO ORIGINAL) - ACTIVO")
     app.run(port=os.environ.get('PORT', 5000), debug=True)
