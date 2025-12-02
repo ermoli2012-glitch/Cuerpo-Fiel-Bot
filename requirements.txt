@@ -1,5 +1,5 @@
 Flask
 Psycopg2-binary
-google-genai>=0.10.0
+google-genai
 Twilio
 gunicorn
