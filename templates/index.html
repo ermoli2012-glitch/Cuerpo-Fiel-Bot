@@ -5,50 +5,89 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Dr. Caleb - Guía de Salud Integral</title>
     <style>
-        /* Estilos CSS anteriores omitidos por brevedad */
-        body { font-family: Arial, sans-serif; margin: 0; padding: 0; background-color: #f4f7f6; display: flex; flex-direction: column; align-items: center; min-height: 100vh; }
-        .main-content { flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-start; align-items: center; width: 100%; padding: 20px; padding-bottom: 90px; } /* Ajuste de padding-bottom */
-        .bot-message-container { max-width: 600px; width: 100%; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 6px 15px rgba(0, 0, 0, 0.15); margin-bottom: 20px; }
-        .bot-message { background-color: #f0f7f4; padding: 15px; border-radius: 10px; line-height: 1.6; font-size: 1.1em; color: #1a535c; white-space: pre-wrap; } /* white-space: pre-wrap para saltos de línea */
-        strong { color: #00796b; }
-        /* Chat Input Styles */
-        .chat-input-container { width: 100%; max-width: 600px; position: fixed; bottom: 0; padding: 15px 20px; background-color: white; box-shadow: 0 -4px 10px rgba(0, 0, 0, 0.05); border-top: 1px solid #ddd; display: flex; }
-        .chat-input-container input { padding: 10px; flex-grow: 1; border: 1px solid #ccc; border-radius: 5px; font-size: 1em; margin-right: 10px; }
-        .chat-input-container button { padding: 10px 15px; border: none; background-color: #00796b; color: white; border-radius: 5px; cursor: pointer; font-weight: bold; }
-        .user-message { 
-            background-color: #e6f3ff; 
-            padding: 10px; 
-            border-radius: 8px; 
-            margin: 10px 0; 
-            text-align: right; 
-            max-width: 80%;
-            align-self: flex-end; /* Para mover el mensaje a la derecha */
+        /* BASE Y FUENTE */
+        body { 
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; /* Fuente moderna */
+            margin: 0; padding: 0; background-color: #f0f8ff; /* Azul claro suave, juvenil */
+            display: flex; flex-direction: column; align-items: center; min-height: 100vh;
         }
-        .bot-response { 
-            background-color: #f0f7f4; 
-            padding: 10px; 
-            border-radius: 8px; 
-            margin: 10px 0; 
-            text-align: left; 
-            white-space: pre-wrap; 
-            max-width: 80%;
-            align-self: flex-start; /* Para mantener el mensaje a la izquierda */
+        
+        /* CONTENEDOR PRINCIPAL (se adapta al 100% en móviles) */
+        .main-content { 
+            flex-grow: 1; padding: 15px; width: 100%; max-width: 600px;
+            display: flex; flex-direction: column; 
+            padding-bottom: 90px; /* Espacio para el input fijo */
         }
-
-        /* Contenedor de mensajes real para el scroll */
+        
+        /* ESTILOS DE CHAT */
         #messages-display {
             width: 100%; 
-            max-width: 600px;
-            display: flex; /* Añadir display flex */
-            flex-direction: column; /* Apilamiento vertical */
+            display: flex; 
+            flex-direction: column; 
         }
+        .bot-message-container { 
+            width: 100%; background: #ffffff; 
+            padding: 15px; border-radius: 12px; 
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1); 
+            margin-bottom: 15px; 
+        }
+        .bot-message { 
+            background-color: #e6f7ff; /* Tono más vibrante */
+            padding: 12px; border-radius: 10px; 
+            line-height: 1.6; font-size: 1em; 
+            color: #004d40; /* Verde oscuro profesional */
+            white-space: pre-wrap; 
+            font-weight: 500; /* Peso de fuente juvenil */
+        }
+        
+        /* MENSAJES DE CONVERSACIÓN */
+        .user-message { 
+            background-color: #d1e7ff; /* Azul claro de usuario */
+            padding: 10px; border-radius: 18px 18px 2px 18px; /* Burbuja juvenil */
+            margin: 8px 0; text-align: left; max-width: 85%;
+            align-self: flex-end; /* Mover a la derecha */
+        }
+        .bot-response { 
+            background-color: #e6f7ff; 
+            padding: 10px; border-radius: 18px 18px 18px 2px; /* Burbuja juvenil */
+            margin: 8px 0; text-align: left; white-space: pre-wrap; 
+            max-width: 85%;
+            align-self: flex-start; /* Mover a la izquierda */
+        }
+        
+        strong { color: #00796b; } /* Color de énfasis profesional */
+
+        /* CONTENEDOR DE INPUT FIJO (Adaptable) */
+        .chat-input-container { 
+            width: 100%; max-width: 600px; position: fixed; bottom: 0; 
+            padding: 10px 15px; background-color: white; 
+            box-shadow: 0 -3px 10px rgba(0, 0, 0, 0.1); 
+            display: flex; align-items: center; 
+            box-sizing: border-box; /* Asegura que el padding se incluya en el ancho */
+        }
+        .chat-input-container input { 
+            padding: 12px; flex-grow: 1; border: 1px solid #ccc; 
+            border-radius: 20px; /* Bordes redondeados juveniles */
+            font-size: 1em; margin-right: 10px; 
+        }
+        .chat-input-container button { 
+            padding: 10px 15px; border: none; 
+            background-color: #00a884; /* Verde WhatsApp, juvenil y limpio */
+            color: white; border-radius: 20px; 
+            cursor: pointer; font-weight: bold; 
+            transition: background-color 0.3s;
+        }
+        .chat-input-container button:hover {
+            background-color: #00897b;
+        }
+
     </style>
 </head>
 <body>
 
 <div class="main-content">
     <div class="bot-message-container">
-        <div class="bot-message" id="welcome-message">
+        <div class="bot-response" id="welcome-message" style="margin-top: 0; border-radius: 12px;">
             </div>
     </div>
     
@@ -64,6 +103,7 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', (event) => {
+        // Mensaje de bienvenida profesional
         const welcomeText = "👋 **¡Saludos! Bienvenido/a al Ministerio de Salud Adventista.** Soy el Dr. Caleb, tu guía. \n\n" + 
                             "Para obtener nuestro menú de servicios e iniciar tu consulta clínica, \n" + 
                             "por favor, **escribe HOLA** y presiona Enviar.";
@@ -85,7 +125,7 @@
         });
     });
     
-    // Función para añadir mensajes al DOM y FORZAR EL SCROLL
+    // Función para añadir mensajes al DOM y forzar el scroll
     function displayMessage(sender, text) {
         const messagesDiv = document.getElementById('messages-display');
         const newMessage = document.createElement('div');
@@ -99,10 +139,8 @@
         newMessage.innerHTML = sender === 'user' ? text : renderBotMarkdown(text);
         messagesDiv.appendChild(newMessage);
         
-        // --- CÓDIGO CLAVE PARA EL SCROLL ---
+        // CÓDIGO CLAVE PARA EL SCROLL
         window.scrollTo(0, document.body.scrollHeight);
-        // messagesDiv.scrollTop = messagesDiv.scrollHeight; // Esta línea puede fallar, mejor usar window.scrollTo
-
     }
 
     // FUNCIÓN CRÍTICA QUE CONECTA EL FRONTEND CON LA RUTA DE FLASK
@@ -111,7 +149,6 @@
         const message = input.value;
         if (!message.trim()) return;
 
-        // Mostrar mensaje del usuario
         displayMessage('user', message);
         input.value = '';
 
@@ -127,7 +164,6 @@
             const data = await response.json();
             
             if (data.respuesta) {
-                // Mostrar la respuesta del bot y activar el scroll
                 displayMessage('bot', data.respuesta);
             } else {
                 displayMessage('bot', '⚠️ Error: No se recibió una respuesta válida del servidor.');
