@@ -21,8 +21,9 @@ Tu vida es la prioridad.
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
         
-    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLE DE "SÍ") ===
-
+    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS ===
+    # Esta lógica debe permanecer aquí para manejar la respuesta SI/NO después de la consulta.
+    
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
     keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
     
@@ -145,9 +146,9 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
     # === 6. LÓGICA DE PROCESAMIENTO DE EVALUACIÓN (NUEVO BLOQUE DE CÓDIGO) ===
 
     # Patrón para detectar la respuesta a la evaluación (ej: "8, 3, 4" o "8 3 4")
-    # Busca 3 números o más, separados por espacios, comas, o guiones
     import re
-    if re.match(r'^\s*[\d\s,]+$', mensaje_usuario) and len(mensaje_usuario.split()) >= 3:
+    # Esta lógica se activa si la respuesta contiene 3 o más números separados por espacios o comas.
+    if re.match(r'^\s*[\d\s,]+$', mensaje_usuario) and len(re.findall(r'\d+', mensaje_usuario)) >= 3:
         
         # PROMPT DE DELEGACIÓN A GEMINI PARA ANÁLISIS DE HÁBITOS
         prompt_evaluacion = f"""
