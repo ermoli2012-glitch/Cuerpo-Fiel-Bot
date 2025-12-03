@@ -28,17 +28,18 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (ROL: GENESIS)
+# 2. INSTRUCCIÓN MAESTRA (RESPUESTA CORTA Y PRECISA)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CÁLIDO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
-1. **CONTESTA DE INMEDIATO:** Omite cualquier saludo o introducción en la respuesta clínica. Ve directo al diagnóstico.
+1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta.
 2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
-3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
-4. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
-5. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
+3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
+4. Formato: Usa negritas, saltos de línea y emojis.
+5. **Cierre Práctico (OBLIGATORIO):** Al final de la respuesta, incluye una frase invitando al usuario a la interacción, como: *'¿Te gustaría saber más sobre este Remedio Natural o los otros 7 pilares de salud?'*
+6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
@@ -59,8 +60,9 @@ MENU_SERVICIOS = f"""
 * **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
 * **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
+* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
 
-*Responde solo con el número (ej: 1)*
+*Responde solo con el número (ej: 1 o 5)*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -72,8 +74,7 @@ def obtener_conexion():
     try:
         if database_url:
             return psycopg2.connect(database_url, sslmode='require')
-        else:
-            return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
+        return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
    
     except Exception as e:
         print(f"❌ Error al conectar a la DB: {e}")
@@ -97,7 +98,7 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL) ---
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú.
@@ -118,9 +119,9 @@ Tu vida es la prioridad.
 
     # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
-        return MENU_SERVICIOS
+        return MENU_SERVICIOS 
         
-    # === 3. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ) ===
+    # === 3. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
     
     # 1. CONSULTA CLÍNICA
     if mensaje_limpio == "1":
@@ -136,7 +137,7 @@ Tu vida es la prioridad.
             "🧠 **Apoyo Psicológico: Paz Mental**\n\n"
             "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
             "estrés o ansiedad, comunícate al:\n"
-            f"📲 **WhatsApp: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
+            f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
             "«El reposo mental es una parte esencial de la adoración a Dios.»"
         )
         
@@ -156,20 +157,117 @@ Tu vida es la prioridad.
             "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
             f"🔗 **[AWR Colombia]({RADIO_LINK})**"
         )
+        
+    # 5. MÓDULO EJERCICIO: PODER 8 (Entrada)
+    if mensaje_limpio == "5":
+        return """
+💪 **¡Bienvenido al Reto Poder 8!** 🚀
 
-    # === 4. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
+Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Naturales**.
+
+🧠 *Inteligencia Viral:* Ajustamos tu rutina según tu **conexión mental-músculo** y tu **ritmo de reposo sabático**.
+
+🔥 *¿Cómo te gustaría empezar?*
+   A. **Mi Rutina:** Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').
+   B. **Conciencia Corporal:** ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
+   C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!
+"""
+
+    # === 4. LÓGICA DE PROFUNDIZACIÓN: 8 REMEDIOS NATURALES (OPCIÓN 'SABER MAS') ===
+
+    keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES"]
     
-    # Palabras clave para Orientación Psicológica (directa, sin el número 2)
-    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "MENTAL"]
+    if any(k in mensaje_limpio for k in keywords_mas_info):
+        return """
+✨ **Los 8 Pilares de la Salud** ✨
+
+¡Me encanta tu interés por la **restauración completa**! Estos son los **8 Remedios Naturales** que promueven la sanidad integral, tal como los enseñan las Escrituras:
+
+1.  **🌿 Nutrición (Alimentos sanos)**
+2.  **💧 Agua**
+3.  **☀️ Luz Solar**
+4.  **🏃 Ejercicio**
+5.  **🌬️ Aire Puro**
+6.  **😴 Descanso**
+7.  **🧘 Templanza** (Moderación y Equilibrio)
+8.  **🙏 Esperanza en Dios** (Confianza en el poder divino)
+
+*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
+"""
+        
+    # === 5. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
+
+    keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
+    
+    if any(k in mensaje_limpio for k in keywords_pilares):
+        
+        # PROMPT DE DELEGACIÓN A GEMINI PARA ENSEÑANZA ESPECÍFICA
+        prompt_pilar = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        CONTEXTO DE CONVERSACIÓN: El usuario está pidiendo detalles sobre uno de los 8 Remedios Naturales.
+        
+        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
+        
+        1. Identifica el Remedio Natural solicitado (Nutrición, Agua, etc.).
+        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud.
+        3. Cierra con un versículo bíblico ALTAMENTE RELEVANTE a ese pilar específico.
+        
+        Responde al grano, manteniendo el tono profesional y el enfoque Adventista.
+        """
+        
+        try:
+            response = model.generate_content(prompt_pilar)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (RESPUESTA PILAR): {e}")
+            return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
+
+    # === 6. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
+    
+    # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
+    keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
+    
+    # Si el mensaje es una de las letras de la opción, o una pregunta detallada DENTRO del contexto del Reto Poder 8
+    if mensaje_limpio in ["A", "B", "C"] or any(k in mensaje_limpio for k in keywords_modulo_5):
+        
+        # PROMPT DE DELEGACIÓN A GEMINI PARA RESPUESTA CONTEXTUAL
+        prompt_sub_menu = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del **Módulo de Ejercicio Reto Poder 8**. 
+        
+        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
+        
+        * Si el usuario pide **Rutina (A)** o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
+        * Si el usuario pide **Conciencia Corporal (B)** o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
+        * Si el usuario pide **Comunidad (C)**, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
+        
+        Responde al grano, manteniendo el tono profesional y el enfoque Poder 8.
+        """
+        
+        try:
+            response = model.generate_content(prompt_sub_menu)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
+            return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
+
+    # === 7. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
+    
+    # Palabras clave para Orientación Psicológica (directa)
+    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
     if any(k in mensaje_limpio for k in keywords_psicologia):
         return (
             "🧠 *¡Tu bienestar mental es la prioridad!* Te asistiremos con **Orientación Psicológica**.\n\n"
             "Para iniciar la sesión de apoyo emocional, comunícate al:\n"
             f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
-            "«El descanso del cuerpo y la mente es vital para la salud espiritual.»"
+            "«El reposo mental es una parte esencial de la adoración a Dios.»"
         )
         
-    # Palabras clave para la radio (directa, sin el número 4)
+    # Palabras clave para la radio (directa)
     keywords_radio = ["RADIO", "AWR", "ESCUCHAR", "ESPERANZA"]
     if any(k in mensaje_limpio for k in keywords_radio):
         return (
@@ -178,7 +276,7 @@ Tu vida es la prioridad.
             "«El que cree en mí, aunque esté muerto, vivirá» (Juan 11:25)."
         )
         
-    # Palabras clave para iglesias/directorio (directa, sin el número 3)
+    # Palabras clave para iglesias/directorio (directa)
     keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO"]
     if any(k in mensaje_limpio for k in keywords_iglesias):
         return (
@@ -187,9 +285,15 @@ Tu vida es la prioridad.
             "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
         )
 
-    # === 5. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
+    # Palabras clave para ejercicio (directa)
+    keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO", "PODER 8"]
+    if any(k in mensaje_limpio for k in keywords_ejercicio):
+        # Redirigimos a la opción 5
+        return consultar_gemini(celular, "5") 
+
+
+    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
-        # La IA va directo al grano
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
@@ -205,7 +309,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 6. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
