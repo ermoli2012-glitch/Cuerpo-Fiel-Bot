@@ -34,7 +34,7 @@ INSTRUCCION_SISTEMA = """
 ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Eres un **Médico Especialista en Estilo de Vida y Nutrición**. Tu estilo es PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
-1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL**, con un **nivel de detalle TERAPÉUTICO** (no básico).
+1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta.
 2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
 3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
 4. Formato: Usa negritas, saltos de línea y emojis.
@@ -62,7 +62,7 @@ MENU_SERVICIOS = f"""
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
 * **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
 
-*Responde solo con el número (ej: 1 o 5) o escribe **SALIR** para volver aquí.*
+*Responde solo con el número (ej: 1 o 5) o escribe **MENÚ** para volver aquí.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -117,20 +117,20 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALIDA (Nueva Regla de Prioridad) ===
+    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALIDA (PRIORIDAD MÁXIMA) ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
         
-    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (ALTA PRIORIDAD) ===
+    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLE) ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
     keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
     
-    # Respuesta a "NO"
+    # 3.1 Respuesta a "NO"
     if any(k in mensaje_limpio for k in keywords_no_info):
         return "¡Entendido! Siempre estoy aquí para cuando me necesites. No olvides que la salud es un viaje. 👋"
 
-    # Respuesta a "SÍ" / "SABER MÁS"
+    # 3.2 Respuesta a "SÍ" / "SABER MÁS" (Muestra la lista)
     if any(k in mensaje_limpio for k in keywords_mas_info):
         return """
 ✨ **Los 8 Pilares de la Salud** ✨
@@ -146,7 +146,7 @@ Tu vida es la prioridad.
 7.  **🧘 Templanza** (Moderación y Equilibrio)
 8.  **🙏 Esperanza en Dios** (Confianza en el poder divino)
 
-*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar (ej: AGUA).*
+*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
 """
         
     # === 4. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
@@ -164,7 +164,7 @@ Tu vida es la prioridad.
         TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
         
         1. Identifica el Remedio Natural solicitado.
-        2. Como Médico Especialista, genera una **explicación profunda y concisa** de cómo aplicar ese pilar de salud, enfatizando la restricción de carnes, azúcar y cafeína (si aplica al pilar).
+        2. Genera una **explicación profunda y concisa** de cómo aplicar ese pilar de salud, enfatizando la restricción de carnes, azúcar y cafeína (si aplica al pilar).
         3. Cierra con un versículo bíblico ALTAMENTE RELEVANTE a ese pilar específico.
         
         Responde al grano, manteniendo el tono profesional y el enfoque Adventista.
@@ -181,7 +181,7 @@ Tu vida es la prioridad.
 
     # === 5. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
     
-    # 1. CONSULTA CLÍNICA (Aquí cae la mayoría de las preguntas de salud)
+    # 1. CONSULTA CLÍNICA
     if mensaje_limpio == "1":
         return (
             "🩺 **Consulta Clínica: Pregunta al instante**\n\n"
@@ -316,6 +316,7 @@ Intenta de nuevo en un momento."
 """
 
 
+# =LECTION_SECTION_END
 # ==========================================
 # 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
