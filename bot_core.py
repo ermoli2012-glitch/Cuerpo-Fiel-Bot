@@ -62,7 +62,7 @@ MENU_SERVICIOS = f"""
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
 * **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
 
-*Responde solo con el número (ej: 1 o 5) o escribe **MENÚ** para volver aquí.*
+*Responde solo con el número (ej: 1 o 5) o escribe **SALIR** para volver aquí.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -121,7 +121,7 @@ Tu vida es la prioridad.
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
         
-    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLE) ===
+    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLE DE "SÍ") ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
     keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
@@ -146,7 +146,7 @@ Tu vida es la prioridad.
 7.  **🧘 Templanza** (Moderación y Equilibrio)
 8.  **🙏 Esperanza en Dios** (Confianza en el poder divino)
 
-*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
+*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar (ej: AGUA).*
 """
         
     # === 4. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
@@ -296,56 +296,4 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
     keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO", "PODER 8"]
     if any(k in mensaje_limpio for k in keywords_ejercicio):
         # Redirigimos a la opción 5
-        return consultar_gemini(celular, "5") 
-
-
-    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
-    try:
-        # Si el mensaje pasa todas las lógicas anteriores, es una pregunta de salud
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
-        
-        response = model.generate_content(prompt_full)
-     
-        texto = response.text.replace('**', '*').replace('__', '_')
-        return texto
-    except Exception as e:
-        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return """
-⚠️ Lo siento, Genesis está en una consulta crítica.
-Intenta de nuevo en un momento."
-"""
-
-
-# =LECTION_SECTION_END
-# ==========================================
-# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
-# ==========================================
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    celular_raw = request.values.get('From', 'Web User')
-    celular = celular_raw.replace('whatsapp:', '')
-    if celular.startswith('+'):
-        celular = celular[1:]
-        
-    mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
-    
-    print(f"📩 Recibido de {celular}: {mensaje_in}")
-
-    respuesta = consultar_gemini(celular, mensaje_in)
-    
-    guardar_historial(celular, mensaje_in, respuesta)
-
-    if 'whatsapp' in celular_raw.lower():
-        resp = MessagingResponse()
-        resp.message(respuesta)
-        return str(resp), 200, {'Content-Type': 'application/xml'}
-    else:
-        return jsonify({"respuesta": respuesta})
-
-if __name__ == '__main__':
-    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
-    app.run(port=os.environ.get('PORT', 5000), debug=True)
+        return consultar_gemini(celular, "5")
