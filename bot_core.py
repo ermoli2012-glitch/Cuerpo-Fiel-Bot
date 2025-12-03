@@ -174,7 +174,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
    C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!
 """
 
-    # === 4. LÓGICA DE PROFUNDIZACIÓN: 8 REMEDIOS NATURALES ===
+    # === 4. LÓGICA DE PROFUNDIZACIÓN: 8 REMEDIOS NATURALES (OPCIÓN 'SABER MAS') ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES"]
     
@@ -196,7 +196,37 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
 *¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
 """
         
-    # === 5. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
+    # === 5. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (NUEVA LÓGICA) ===
+
+    keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
+    
+    if any(k in mensaje_limpio for k in keywords_pilares):
+        
+        # PROMPT DE DELEGACIÓN A GEMINI PARA ENSEÑANZA ESPECÍFICA
+        prompt_pilar = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        CONTEXTO DE CONVERSACIÓN: El usuario está pidiendo detalles sobre uno de los 8 Remedios Naturales.
+        
+        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
+        
+        1. Identifica el Remedio Natural solicitado (Nutrición, Agua, etc.).
+        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud.
+        3. Cierra con un versículo bíblico ALTAMENTE RELEVANTE a ese pilar específico.
+        
+        Responde al grano, manteniendo el tono profesional y el enfoque Adventista.
+        """
+        
+        try:
+            response = model.generate_content(prompt_pilar)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (RESPUESTA PILAR): {e}")
+            return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
+
+
+    # === 6. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
     
     # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
     keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
@@ -227,7 +257,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
             print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
             return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
 
-    # === 6. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
+    # === 7. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
     
     # Palabras clave para Orientación Psicológica (directa)
     keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
@@ -264,7 +294,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
         return consultar_gemini(celular, "5") 
 
 
-    # === 7. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
+    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
@@ -281,4 +311,34 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 8. RUTAS WEB Y DE WHATSAPP (Sin cambios
+# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# ==========================================
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    celular_raw = request.values.get('From', 'Web User')
+    celular = celular_raw.replace('whatsapp:', '')
+    if celular.startswith('+'):
+        celular = celular[1:]
+        
+    mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
+    
+    print(f"📩 Recibido de {celular}: {mensaje_in}")
+
+    respuesta = consultar_gemini(celular, mensaje_in)
+    
+    guardar_historial(celular, mensaje_in, respuesta)
+
+    if 'whatsapp' in celular_raw.lower():
+        resp = MessagingResponse()
+        resp.message(respuesta)
+        return str(resp), 200, {'Content-Type': 'application/xml'}
+    else:
+        return jsonify({"respuesta": respuesta})
+
+if __name__ == '__main__':
+    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
+    app.run(port=os.environ.get('PORT', 5000), debug=True)
