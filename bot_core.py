@@ -56,13 +56,14 @@ MENU_SERVICIOS = f"""
 ** Selecciona una opción para empezar:**
 ----------------------------------------
 
+* **0️⃣ EVALUACIÓN:** ¡Descubre tu punto de partida! (Preguntas rápidas sobre tus 8 Remedios).
 * **1️⃣ CONSULTA CLÍNICA:** Pregúntame sobre cualquier síntoma o tratamiento natural.
 * **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
 * **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
 * **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
 
-*Responde solo con el número (ej: 1 o 5) o escribe **SALIR** para volver aquí.*
+*Responde solo con el número (ej: 0 o 5) o escribe **SALIR** para volver aquí.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -146,7 +147,7 @@ Tu vida es la prioridad.
 7.  **🧘 Templanza** (Moderación y Equilibrio)
 8.  **🙏 Esperanza en Dios** (Confianza en el poder divino)
 
-*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar (ej: AGUA).*
+*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
 """
         
     # === 4. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
@@ -181,6 +182,17 @@ Tu vida es la prioridad.
 
     # === 5. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
     
+    # 0. EVALUACIÓN DE HÁBITOS (Nueva Opción 0)
+    if mensaje_limpio == "0" or "EVALUACIÓN" in mensaje_limpio:
+        return (
+            "✅ **Evaluación Rápida de Hábitos**\n\n"
+            "Responde a las siguientes 3 preguntas para una guía más precisa:\n"
+            "1. ¿En promedio, cuántos vasos de agua simple consumes al día?\n"
+            "2. ¿Cuántas veces a la semana realizas ejercicio moderado a intenso (mínimo 30 min)?\n"
+            "3. ¿Qué tan satisfecho/a estás con tu descanso nocturno (1-5)?\n\n"
+            "*(Responde con los 3 números: ej. 8, 3, 4)*"
+        )
+        
     # 1. CONSULTA CLÍNICA
     if mensaje_limpio == "1":
         return (
@@ -196,104 +208,4 @@ Tu vida es la prioridad.
             "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
             "estrés o ansiedad, comunícate al:\n"
             f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
-            "«El reposo mental es una parte esencial de la adoración a Dios.»"
-        )
-        
-    # 3. COMUNIDAD DE FE
-    if mensaje_limpio == "3":
-        return (
-            "📍 **Comunidad de Fe: Encuentra tu Hogar**\n\n"
-            "Para un crecimiento integral, es vital congregarse. Usa el siguiente enlace para buscar "
-            "tu iglesia Adventista o Centro de Vida Sana más cercano:\n"
-            f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**"
-        )
-        
-    # 4. RADIO ADVENTISTA
-    if mensaje_limpio == "4":
-        return (
-            "📻 **Voz de Esperanza: Inspiración Diaria**\n\n"
-            "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
-            f"🔗 **[AWR Colombia]({RADIO_LINK})**"
-        )
-        
-    # 5. MÓDULO EJERCICIO: PODER 8 (Entrada)
-    if mensaje_limpio == "5":
-        return """
-💪 **¡Bienvenido al Reto Poder 8!** 🚀
-
-Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Naturales**.
-
-🧠 *Inteligencia Viral:* Ajustamos tu rutina según tu **conexión mental-músculo** y tu **ritmo de reposo sabático**.
-
-🔥 *¿Cómo te gustaría empezar?*
-   A. **Mi Rutina:** Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').
-   B. **Conciencia Corporal:** ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
-   C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!
-"""
-
-    # === 6. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
-    
-    # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
-    keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
-    
-    # Si el mensaje es una de las letras de la opción, o una pregunta detallada DENTRO del contexto del Reto Poder 8
-    if mensaje_limpio in ["A", "B", "C"] or any(k in mensaje_limpio for k in keywords_modulo_5):
-        
-        # PROMPT DE DELEGACIÓN A GEMINI PARA RESPUESTA CONTEXTUAL
-        prompt_sub_menu = f"""
-        {INSTRUCCION_SISTEMA}
-        
-        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del **Módulo de Ejercicio Reto Poder 8**. 
-        
-        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
-        
-        * Si el usuario pide **Rutina (A)** o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
-        * Si el usuario pide **Conciencia Corporal (B)** o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
-        * Si el usuario pide **Comunidad (C)**, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
-        
-        Responde al grano, manteniendo el tono profesional y el enfoque Poder 8.
-        """
-        
-        try:
-            response = model.generate_content(prompt_sub_menu)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
-            return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
-
-    # === 7. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
-    
-    # Palabras clave para Orientación Psicológica (directa)
-    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
-    if any(k in mensaje_limpio for k in keywords_psicologia):
-        return (
-            "🧠 *¡Tu bienestar mental es la prioridad!* Te asistiremos con **Orientación Psicológica**.\n\n"
-            "Para iniciar la sesión de apoyo emocional, comunícate al:\n"
-            f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
-            "«El reposo mental es una parte esencial de la adoración a Dios.»"
-        )
-        
-    # Palabras clave para la radio (directa)
-    keywords_radio = ["RADIO", "AWR", "ESCUCHAR", "ESPERANZA"]
-    if any(k in mensaje_limpio for k in keywords_radio):
-        return (
-            "📻 *¡El mensaje de la triple ángel!* Conéctate a nuestra **Voz de Esperanza**.\n\n"
-            f"Escúchanos aquí: **[AWR Colombia]({RADIO_LINK})**\n\n"
-            "«El que cree en mí, aunque esté muerto, vivirá» (Juan 11:25)."
-        )
-        
-    # Palabras clave para iglesias/directorio (directa)
-    keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO", "KINESIOLOGIA", "FISIOTERAPIA"]
-    if any(k in mensaje_limpio for k in keywords_iglesias):
-        return (
-            "📍 *¡Encuentra una comunidad de fe y salud!* Para buscar tu iglesia o centro de vida sana más cercano (donde puedes encontrar servicios como Fisioterapia o Kinesiología), usa el directorio:\n\n"
-            f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**\n\n"
-            "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
-        )
-
-    # Palabras clave para ejercicio (directa)
-    keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO", "PODER 8"]
-    if any(k in mensaje_limpio for k in keywords_ejercicio):
-        # Redirigimos a la opción 5
-        return consultar_gemini(celular, "5")
+            "«El reposo mental es una parte
