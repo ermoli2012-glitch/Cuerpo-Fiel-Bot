@@ -28,17 +28,17 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (RESPUESTA CORTA Y PRECISA)
+# 2. INSTRUCCIÓN MAESTRA (NIVEL MÉDICO ESPECIALISTA)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Eres un **Médico Especialista en Estilo de Vida y Nutrición**. Tu estilo es PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
-1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta.
+1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL**, con un **nivel de detalle TERAPÉUTICO** (no básico).
 2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
 3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
 4. Formato: Usa negritas, saltos de línea y emojis.
-5. **Cierre Práctico (OBLIGATORIO):** Al final de la respuesta, incluye una frase invitando al usuario a la interacción, como: *'¿Te gustaría saber más sobre este Remedio Natural o los otros 7 pilares de salud?'*
+5. **Cierre Práctico (OBLIGATORIO):** Al final de la respuesta, incluye la pregunta interactiva: *'¿Te gustaría saber más (SI/NO) sobre este Remedio Natural o los otros 7 pilares de salud?'*
 6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
 
@@ -62,7 +62,7 @@ MENU_SERVICIOS = f"""
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
 * **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
 
-*Responde solo con el número (ej: 1 o 5)*
+*Responde solo con el número (ej: 1 o 5) o escribe **SALIR** para volver aquí.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -117,15 +117,20 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO ===
-    if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
+    # === 2. LÓGICA CONDICIONAL DE MENÚ/SALIDA (Nueva Regla de Prioridad) ===
+    if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
         
-    # === 3. LÓGICA DE PROFUNDIZACIÓN: 8 REMEDIOS NATURALES (ALTA PRIORIDAD - Responde a "SI") ===
+    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (ALTA PRIORIDAD) ===
 
-    # Palabras clave de profundización (incluye "SI" para el seguimiento)
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
+    keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
     
+    # Respuesta a "NO"
+    if any(k in mensaje_limpio for k in keywords_no_info):
+        return "¡Entendido! Siempre estoy aquí para cuando me necesites. No olvides que la salud es un viaje. 👋"
+
+    # Respuesta a "SÍ" / "SABER MÁS"
     if any(k in mensaje_limpio for k in keywords_mas_info):
         return """
 ✨ **Los 8 Pilares de la Salud** ✨
@@ -141,7 +146,7 @@ Tu vida es la prioridad.
 7.  **🧘 Templanza** (Moderación y Equilibrio)
 8.  **🙏 Esperanza en Dios** (Confianza en el poder divino)
 
-*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
+*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar (ej: AGUA).*
 """
         
     # === 4. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
@@ -150,7 +155,7 @@ Tu vida es la prioridad.
     
     if any(k in mensaje_limpio for k in keywords_pilares):
         
-        # PROMPT DE DELEGACIÓN A GEMINI PARA ENSEÑANZA ESPECÍFICA
+        # PROMPT DE DELEGACIÓN A GEMINI PARA ENSEÑANZA ESPECIALIZADA
         prompt_pilar = f"""
         {INSTRUCCION_SISTEMA}
         
@@ -158,8 +163,8 @@ Tu vida es la prioridad.
         
         TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
         
-        1. Identifica el Remedio Natural solicitado (Nutrición, Agua, etc.).
-        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud.
+        1. Identifica el Remedio Natural solicitado.
+        2. Como Médico Especialista, genera una **explicación profunda y concisa** de cómo aplicar ese pilar de salud, enfatizando la restricción de carnes, azúcar y cafeína (si aplica al pilar).
         3. Cierra con un versículo bíblico ALTAMENTE RELEVANTE a ese pilar específico.
         
         Responde al grano, manteniendo el tono profesional y el enfoque Adventista.
@@ -176,7 +181,7 @@ Tu vida es la prioridad.
 
     # === 5. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
     
-    # 1. CONSULTA CLÍNICA
+    # 1. CONSULTA CLÍNICA (Aquí cae la mayoría de las preguntas de salud)
     if mensaje_limpio == "1":
         return (
             "🩺 **Consulta Clínica: Pregunta al instante**\n\n"
@@ -279,10 +284,10 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
         )
         
     # Palabras clave para iglesias/directorio (directa)
-    keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO"]
+    keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO", "KINESIOLOGIA", "FISIOTERAPIA"]
     if any(k in mensaje_limpio for k in keywords_iglesias):
         return (
-            "📍 *¡Encuentra una comunidad de fe y salud!* Para buscar tu iglesia o centro de vida sana más cercano, usa el directorio:\n\n"
+            "📍 *¡Encuentra una comunidad de fe y salud!* Para buscar tu iglesia o centro de vida sana más cercano (donde puedes encontrar servicios como Fisioterapia o Kinesiología), usa el directorio:\n\n"
             f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**\n\n"
             "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
         )
