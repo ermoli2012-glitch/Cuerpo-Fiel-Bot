@@ -28,13 +28,13 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (RESPUESTA CORTA Y PRECISA)
+# 2. INSTRUCCIÓN MAESTRA (ÉNFASIS EN ENFOQUE TERAPÉUTICO)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**. Tu prescripción está basada en el **ESTILO DE VIDA BASADO EN PLANTAS Y ALIMENTOS INTEGRALES** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
-1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta.
+1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta, abordando el bienestar FÍSICO Y MENTAL/ESPIRITUAL.
 2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
 3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
 4. Formato: Usa negritas, saltos de línea y emojis.
@@ -98,7 +98,7 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL CORREGIDO Y FINAL) ---
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú.
@@ -119,6 +119,7 @@ Tu vida es la prioridad.
 
     # === 2. LÓGICA CONDICIONAL DE MENÚ/SALUDO ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
+        # Se usa el menú estático para evitar fallos de sintaxis en el prompt orgánico
         return MENU_SERVICIOS 
         
     # === 3. LÓGICA DE PROFUNDIZACIÓN: 8 REMEDIOS NATURALES (ALTA PRIORIDAD - Responde a "SI") ===
@@ -158,7 +159,7 @@ Tu vida es la prioridad.
         TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
         
         1. Identifica el Remedio Natural solicitado (Nutrición, Agua, etc.).
-        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud.
+        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud, **enfatizando la restricción de carnes, azúcar y cafeína**.
         3. Cierra con un versículo bíblico ALTAMENTE RELEVANTE a ese pilar específico.
         
         Responde al grano, manteniendo el tono profesional y el enfoque Adventista.
@@ -237,71 +238,4 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
         prompt_sub_menu = f"""
         {INSTRUCCION_SISTEMA}
         
-        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del **Módulo de Ejercicio Reto Poder 8**. 
-        
-        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
-        
-        * Si el usuario pide **Rutina (A)** o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
-        * Si el usuario pide **Conciencia Corporal (B)** o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
-        * Si el usuario pide **Comunidad (C)**, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
-        
-        Responde al grano, manteniendo el tono profesional y el enfoque Poder 8.
-        """
-        
-        try:
-            response = model.generate_content(prompt_sub_menu)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
-            return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
-
-    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
-    try:
-        # Si el mensaje pasa todas las lógicas anteriores, es una pregunta de salud
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
-        
-        response = model.generate_content(prompt_full)
-     
-        texto = response.text.replace('**', '*').replace('__', '_')
-        return texto
-    except Exception as e:
-        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return """
-⚠️ Lo siento, Genesis está en una consulta crítica.
-Intenta de nuevo en un momento."
-"""
-
-
-# ==========================================
-# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
-# ==========================================
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    celular_raw = request.values.get('From', 'Web User')
-    celular = celular_raw.replace('whatsapp:', '')
-    if celular.startswith('+'):
-        celular = celular[1:]
-        
-    mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
-    
-    print(f"📩 Recibido de {celular}: {mensaje_in}")
-
-    respuesta = consultar_gemini(celular, mensaje_in)
-    
-    guardar_historial(celular, mensaje_in, respuesta)
-
-    if 'whatsapp' in celular_raw.lower():
-        resp = MessagingResponse()
-        resp.message(respuesta)
-        return str(resp), 200, {'Content-Type': 'application/xml'}
-    else:
-        return jsonify({"respuesta": respuesta})
-
-if __name__ == '__main__':
-    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
-    app.run(port=os.environ.get('PORT', 5000), debug=True)
+        CONTEXT
