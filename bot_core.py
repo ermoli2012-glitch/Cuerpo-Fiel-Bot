@@ -1,104 +1,3 @@
-import os
-import psycopg2
-import google.generativeai as genai
-from flask import Flask, request, jsonify, render_template
-from twilio.twiml.messaging_response import MessagingResponse
-
-app = Flask(__name__)
-
-# ==========================================
-# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
-# ==========================================
-API_KEY = os.environ.get("GEMINI_API_KEY") 
-model = None
-
-try:
-    if not API_KEY:
-        print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
-        
-    genai.configure(api_key=API_KEY)
-    # Usamos el modelo más rápido y eficiente para chat
-    model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025') 
-except Exception as e:
-    print(f"❌ Error al configurar Gemini: {e}")
-
-# --- DATOS DE CONTACTO Y ENLACES (Variables de uso interno) ---
-WHATSAPP_CONTACTO_PSICOLOGIA = "3122521843"
-RADIO_LINK = "https://www.awrcolombia.org/"
-DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
-
-# =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (NIVEL MÉDICO ESPECIALISTA)
-# =========================================================================
-INSTRUCCION_SISTEMA = """
-ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Eres un **Médico Especialista en Estilo de Vida y Nutrición**. Tu estilo es PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
-
-REGLAS DE RESPUESTA:
-1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta.
-2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
-3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
-4. Formato: Usa negritas, saltos de línea y emojis.
-5. **Cierre Práctico (OBLIGATORIO):** Al final de la respuesta, incluye la pregunta interactiva: *'¿Te gustaría saber más (SI/NO) sobre este Remedio Natural o los otros 7 pilares de salud?'*
-6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
-"""
-
-# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
-EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
-
-# --- MENÚ DE SERVICIOS (Texto para la activación con "hola" o "menu") ---
-MENU_SERVICIOS = f"""
-⭐ **¡HOLA! SOY GENESIS** ⭐
-*Tu guía saludable del Distrito Redención.*
-
-🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
-
-----------------------------------------
-** Selecciona una opción para empezar:**
-----------------------------------------
-
-* **0️⃣ EVALUACIÓN:** ¡Descubre tu punto de partida! (Preguntas rápidas sobre tus 8 Remedios).
-* **1️⃣ CONSULTA CLÍNICA:** Pregúntame sobre cualquier síntoma o tratamiento natural.
-* **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
-* **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
-* **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
-* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
-
-*Responde solo con el número (ej: 0 o 5) o escribe **SALIR** para volver aquí.*
-"""
-# ==========================================
-# 3. BASE DE DATOS Y MEMORIA 
-# ==========================================
-def obtener_conexion():
-    """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
-    database_url = os.environ.get('DATABASE_URL')
-    
-    try:
-        if database_url:
-            return psycopg2.connect(database_url, sslmode='require')
-        return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
-   
-    except Exception as e:
-        print(f"❌ Error al conectar a la DB: {e}")
-        return None
-
-def guardar_historial(celular, mensaje, respuesta):
-    """Guarda la interacción en la base de datos."""
-    conn = obtener_conexion()
-    if conn:
-        try:
-            cursor = conn.cursor()
-            cursor.execute("INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)", (celular, mensaje, respuesta))
-            conn.commit()
-            cursor.close()
-     
-        except Exception as e:
-            print(f"❌ Error al guardar en DB: {e}")
-            pass
-        finally:
-            if conn:
-                conn.close()
-
-
 # --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL CORREGIDO Y FINAL) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
@@ -243,7 +142,37 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
    C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!
 """
 
-    # === 6. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
+    # === 6. LÓGICA DE PROCESAMIENTO DE EVALUACIÓN (NUEVO BLOQUE DE CÓDIGO) ===
+
+    # Patrón para detectar la respuesta a la evaluación (ej: "8, 3, 4" o "8 3 4")
+    # Busca 3 números o más, separados por espacios, comas, o guiones
+    import re
+    if re.match(r'^\s*[\d\s,]+$', mensaje_usuario) and len(mensaje_usuario.split()) >= 3:
+        
+        # PROMPT DE DELEGACIÓN A GEMINI PARA ANÁLISIS DE HÁBITOS
+        prompt_evaluacion = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        CONTEXTO DE CONVERSACIÓN: El usuario acaba de completar la Evaluación Rápida de Hábitos con los siguientes datos: "{mensaje_usuario}". (Los valores representan: 1. Vasos de agua/día, 2. Frecuencia de ejercicio/semana, 3. Satisfacción de descanso/5).
+        
+        TAREA ESPECÍFICA: 
+        1. Analiza los 3 datos proporcionados para identificar el pilar más débil y el más fuerte del usuario.
+        2. Genera un **resumen conciso y motivador** de los resultados.
+        3. Da una **recomendación de UN SOLO REMEDIO NATURAL** que deben mejorar de forma inmediata.
+        4. Cierra invitando a iniciar la **Consulta Clínica (Opción 1)** para un plan de acción detallado.
+        
+        Responde en un tono profesional y práctico.
+        """
+        try:
+            response = model.generate_content(prompt_evaluacion)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (EVALUACIÓN): {e}")
+            return "⚠️ Lo siento, no pude procesar tu evaluación ahora. Escribe 'HOLA' e intenta de nuevo con la Opción 1 (Consulta Clínica)."
+
+
+    # === 7. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
     
     # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
     keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
@@ -274,7 +203,44 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
             print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
             return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
 
-    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
+    # === 8. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
+    
+    # Palabras clave para Orientación Psicológica (directa)
+    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
+    if any(k in mensaje_limpio for k in keywords_psicologia):
+        return (
+            "🧠 *¡Tu bienestar mental es la prioridad!* Te asistiremos con **Orientación Psicológica**.\n\n"
+            "Para iniciar la sesión de apoyo emocional, comunícate al:\n"
+            f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
+            "«El reposo mental es una parte esencial de la adoración a Dios.»"
+        )
+        
+    # Palabras clave para la radio (directa)
+    keywords_radio = ["RADIO", "AWR", "ESCUCHAR", "ESPERANZA"]
+    if any(k in mensaje_limpio for k in keywords_radio):
+        return (
+            "📻 *¡El mensaje de la triple ángel!* Conéctate a nuestra **Voz de Esperanza**.\n\n"
+            f"Escúchanos aquí: **[AWR Colombia]({RADIO_LINK})**\n\n"
+            "«El que cree en mí, aunque esté muerto, vivirá» (Juan 11:25)."
+        )
+        
+    # Palabras clave para iglesias/directorio (directa)
+    keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO", "KINESIOLOGIA", "FISIOTERAPIA"]
+    if any(k in mensaje_limpio for k in keywords_iglesias):
+        return (
+            "📍 *¡Encuentra una comunidad de fe y salud!* Para buscar tu iglesia o centro de vida sana más cercano (donde puedes encontrar servicios como Fisioterapia o Kinesiología), usa el directorio:\n\n"
+            f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**\n\n"
+            "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
+        )
+
+    # Palabras clave para ejercicio (directa)
+    keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO", "PODER 8"]
+    if any(k in mensaje_limpio for k in keywords_ejercicio):
+        # Redirigimos a la opción 5
+        return consultar_gemini(celular, "5") 
+
+
+    # === 9. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
         # Si el mensaje pasa todas las lógicas anteriores, es una pregunta de salud
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
@@ -292,7 +258,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# 10. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
