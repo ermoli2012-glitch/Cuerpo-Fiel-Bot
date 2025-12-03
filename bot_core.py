@@ -1,4 +1,104 @@
-# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL) ---
+import os
+import psycopg2
+import google.generativeai as genai
+from flask import Flask, request, jsonify, render_template
+from twilio.twiml.messaging_response import MessagingResponse
+
+app = Flask(__name__)
+
+# ==========================================
+# 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
+# ==========================================
+API_KEY = os.environ.get("GEMINI_API_KEY") 
+model = None
+
+try:
+    if not API_KEY:
+        print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
+        
+    genai.configure(api_key=API_KEY)
+    # Usamos el modelo más rápido y eficiente para chat
+    model = genai.GenerativeModel('gemini-2.5-flash-lite-preview-09-2025') 
+except Exception as e:
+    print(f"❌ Error al configurar Gemini: {e}")
+
+# --- DATOS DE CONTACTO Y ENLACES (Variables de uso interno) ---
+WHATSAPP_CONTACTO_PSICOLOGIA = "3122521843"
+RADIO_LINK = "https://www.awrcolombia.org/"
+DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
+
+# =========================================================================
+# 2. INSTRUCCIÓN MAESTRA (ROL: GENESIS)
+# =========================================================================
+INSTRUCCION_SISTEMA = """
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CÁLIDO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+
+REGLAS DE RESPUESTA:
+1. **CONTESTA DE INMEDIATO:** Omite cualquier saludo o introducción en la respuesta clínica. Ve directo al diagnóstico.
+2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
+3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado (ej: Estrés -> Reposo; Enfermedad -> Cuerpo Templo; Dieta -> Creación).
+4. Formato: Usa negritas, saltos de línea amplios, emojis cálidos (ej: 👋, 🙏) y lenguaje profesional e inspirador.
+5. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
+"""
+
+# --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
+EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
+
+# --- MENÚ DE SERVICIOS (Texto para la activación con "hola" o "menu") ---
+MENU_SERVICIOS = f"""
+⭐ **¡HOLA! SOY GENESIS** ⭐
+*Tu guía saludable del Distrito Redención.*
+
+🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
+
+----------------------------------------
+** Selecciona una opción para empezar:**
+----------------------------------------
+
+* **1️⃣ CONSULTA CLÍNICA:** Pregúntame sobre cualquier síntoma o tratamiento natural.
+* **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
+* **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
+* **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
+* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
+
+*Responde solo con el número (ej: 1 o 5)*
+"""
+# ==========================================
+# 3. BASE DE DATOS Y MEMORIA 
+# ==========================================
+def obtener_conexion():
+    """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
+    database_url = os.environ.get('DATABASE_URL')
+    
+    try:
+        if database_url:
+            return psycopg2.connect(database_url, sslmode='require')
+        else:
+            return psycopg2.connect(user="root", password="root", host="localhost", port="5432", database="cuerpo_fiel_db")
+   
+    except Exception as e:
+        print(f"❌ Error al conectar a la DB: {e}")
+        return None
+
+def guardar_historial(celular, mensaje, respuesta):
+    """Guarda la interacción en la base de datos."""
+    conn = obtener_conexion()
+    if conn:
+        try:
+            cursor = conn.cursor()
+            cursor.execute("INSERT INTO historial_consultas (celular, mensaje_recibido, respuesta_dada) VALUES (%s, %s, %s)", (celular, mensaje, respuesta))
+            conn.commit()
+            cursor.close()
+     
+        except Exception as e:
+            print(f"❌ Error al guardar en DB: {e}")
+            pass
+        finally:
+            if conn:
+                conn.close()
+
+
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú.
@@ -21,7 +121,7 @@ Tu vida es la prioridad.
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR"]:
         return MENU_SERVICIOS
         
-    # === 3. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ) ===
+    # === 3. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
     
     # 1. CONSULTA CLÍNICA
     if mensaje_limpio == "1":
@@ -75,52 +175,36 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
 
     # === 4. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
 
-    # A. RUTINA PERSONALIZADA (Generado por IA)
-    if mensaje_limpio in ["A", "MI RUTINA", "QUIERO GANAR MASA MSUCULAR"]:
-        prompt_rutina = f"""
+    # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
+    keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
+    
+    # Si el mensaje es una de las letras de la opción, o una pregunta detallada DENTRO del contexto del Reto Poder 8
+    if mensaje_limpio in ["A", "B", "C"] or any(k in mensaje_limpio for k in keywords_modulo_5):
+        
+        # PROMPT DE DELEGACIÓN A GEMINI PARA RESPUESTA CONTEXTUAL
+        prompt_sub_menu = f"""
         {INSTRUCCION_SISTEMA}
         
-        TAREA ESPECÍFICA: Genera un plan de ejercicio de 7 días (Microciclo) para el usuario. El objetivo es {mensaje_usuario} (ganar masa muscular o lo que el usuario haya escrito).
+        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del **Módulo de Ejercicio Reto Poder 8**. 
         
-        REGLAS DE RUTINA:
-        1. Debe basarse en los principios de salud total Adventista (Ejercicio como uno de los 8 Remedios).
-        2. Debe incluir un día de descanso o actividad muy ligera (Reposo).
-        3. Usa un tono motivador y juvenil.
-        4. Presenta la rutina en un formato de tabla o lista fácil de leer (Día, Foco, Ejercicio).
+        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
+        
+        * Si el usuario pide **Rutina (A)** o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
+        * Si el usuario pide **Conciencia Corporal (B)** o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
+        * Si el usuario pide **Comunidad (C)**, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
+        
+        Responde al grano, manteniendo el tono profesional y el enfoque Poder 8.
         """
+        
         try:
-            response = model.generate_content(prompt_rutina)
+            response = model.generate_content(prompt_sub_menu)
             texto = response.text.replace('**', '*').replace('__', '_')
             return texto
         except Exception as e:
-            print(f"❌ ERROR GEMINI (RUTINA): {e}")
-            return "⚠️ Lo siento, no puedo generar tu rutina ahora. Intenta de nuevo describiendo tu objetivo."
-
-    # B. CONCIENCIA CORPORAL (Respuesta preformateada)
-    if mensaje_limpio in ["B", "CONCIENCIA CORPORAL", "FATIGA"]:
-        return (
-            "📊 **¡Excelente! Vamos a escanear tu cuerpo.**\n\n"
-            "Para darnos *feedback* preciso, dime lo siguiente:\n"
-            "1. **Nivel de Fatiga (1-5):** (1=Cero cansancio, 5=Totalmente agotado)\n"
-            "2. **Conexión Mente-Músculo (1-5):** (1=No sentí el músculo, 5=Sentí cada contracción)\n\n"
-            "Ejemplo de respuesta: *Fatiga 3, Mente 5*."
-        )
-
-    # C. COMUNIDAD / DESAFÍO (Respuesta preformateada)
-    if mensaje_limpio in ["C", "COMUNIDAD", "DESAFÍO", "PUNTOS DE VITALIDAD"]:
-        return (
-            "🤝 **¡Únete al Desafío Comunitario Poder 8!**\n\n"
-            "Ganarás Puntos de Vitalidad no solo por el gimnasio, sino por registrar:\n"
-            "* Horas de **Descanso** (Reposo)\n"
-            "* Vasos de **Agua**\n"
-            "* Momentos de **Conexión** (Oración/Meditación)\n\n"
-            "Para unirte al grupo de Telegram y empezar a sumar puntos, escribe **'QUIERO COMUNIDAD'**."
-        )
+            print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
+            return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
 
     # === 5. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
-    
-    # ... (Resto de la lógica de respuestas por palabras clave y LÓGICA NORMAL omitido por brevedad) ...
-    # (Asegúrate de que esta lógica esté en tu archivo)
     
     # Palabras clave para Orientación Psicológica (directa)
     keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
@@ -171,3 +255,37 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
 ⚠️ Lo siento, Genesis está en una consulta crítica.
 Intenta de nuevo en un momento."
 """
+
+
+# ==========================================
+# 7. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# ==========================================
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+@app.route('/chat', methods=['POST'])
+def chat():
+    celular_raw = request.values.get('From', 'Web User')
+    celular = celular_raw.replace('whatsapp:', '')
+    if celular.startswith('+'):
+        celular = celular[1:]
+        
+    mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
+    
+    print(f"📩 Recibido de {celular}: {mensaje_in}")
+
+    respuesta = consultar_gemini(celular, mensaje_in)
+    
+    guardar_historial(celular, mensaje_in, respuesta)
+
+    if 'whatsapp' in celular_raw.lower():
+        resp = MessagingResponse()
+        resp.message(respuesta)
+        return str(resp), 200, {'Content-Type': 'application/xml'}
+    else:
+        return jsonify({"respuesta": respuesta})
+
+if __name__ == '__main__':
+    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
+    app.run(port=os.environ.get('PORT', 5000), debug=True)
