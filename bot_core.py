@@ -59,8 +59,9 @@ MENU_SERVICIOS = f"""
 * **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
 * **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
+* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
 
-*Responde solo con el número (ej: 1)*
+*Responde solo con el número (ej: 1 o 5)*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -136,7 +137,7 @@ Tu vida es la prioridad.
             "🧠 **Apoyo Psicológico: Paz Mental**\n\n"
             "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
             "estrés o ansiedad, comunícate al:\n"
-            f"📲 **WhatsApp: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
+            f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
             "«El reposo mental es una parte esencial de la adoración a Dios.»"
         )
         
@@ -156,20 +157,32 @@ Tu vida es la prioridad.
             "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
             f"🔗 **[AWR Colombia]({RADIO_LINK})**"
         )
+        
+    # 5. MÓDULO EJERCICIO: PODER 8
+    if mensaje_limpio == "5":
+        return (
+            "💪 **¡Bienvenido al Reto Poder 8!** 🚀\n\n"
+            "Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Naturales**.\n\n"
+            "🧠 *Inteligencia Viral:* Ajustamos tu rutina según tu **conexión mental-músculo** y tu **ritmo de reposo sabático**.\n\n"
+            "🔥 *¿Cómo te gustaría empezar?*\n"
+            "   A. **Mi Rutina:** Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').\n"
+            "   B. **Conciencia Corporal:** ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?\n"
+            "   C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!"
+        )
 
     # === 4. LÓGICA DE REGLA AUTOMATIZADA (Búsqueda por palabras clave sin el menú) ===
     
-    # Palabras clave para Orientación Psicológica (directa, sin el número 2)
-    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "MENTAL"]
+    # Palabras clave para Orientación Psicológica (directa)
+    keywords_psicologia = ["PSICOLOGIA", "ANSIEDAD", "DEPRESION", "ESTRES", "CONTACTO", "MENTAL"]
     if any(k in mensaje_limpio for k in keywords_psicologia):
         return (
             "🧠 *¡Tu bienestar mental es la prioridad!* Te asistiremos con **Orientación Psicológica**.\n\n"
             "Para iniciar la sesión de apoyo emocional, comunícate al:\n"
             f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
-            "«El descanso del cuerpo y la mente es vital para la salud espiritual.»"
+            "«El reposo mental es una parte esencial de la adoración a Dios.»"
         )
         
-    # Palabras clave para la radio (directa, sin el número 4)
+    # Palabras clave para la radio (directa)
     keywords_radio = ["RADIO", "AWR", "ESCUCHAR", "ESPERANZA"]
     if any(k in mensaje_limpio for k in keywords_radio):
         return (
@@ -178,7 +191,7 @@ Tu vida es la prioridad.
             "«El que cree en mí, aunque esté muerto, vivirá» (Juan 11:25)."
         )
         
-    # Palabras clave para iglesias/directorio (directa, sin el número 3)
+    # Palabras clave para iglesias/directorio (directa)
     keywords_iglesias = ["IGLESIA", "CENTROS", "DIRECTORIO", "VIDA SANA", "COMUNIDAD", "TEMPLO"]
     if any(k in mensaje_limpio for k in keywords_iglesias):
         return (
@@ -186,6 +199,13 @@ Tu vida es la prioridad.
             f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**\n\n"
             "«No dejando de congregarnos, como algunos tienen por costumbre...» (Hebreos 10:25)."
         )
+
+    # Palabras clave para ejercicio (directa)
+    keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO", "PODER 8"]
+    if any(k in mensaje_limpio for k in keywords_ejercicio):
+        # Redirigimos a la opción 5
+        return consultar_gemini(celular, "5") 
+
 
     # === 5. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
