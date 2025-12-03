@@ -28,13 +28,13 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (RESPUESTA CORTA Y PRECISA)
+# 2. INSTRUCCIÓN MAESTRA (ÉNFASIS EN ENFOQUE TERAPÉUTICO)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **estilo de vida más saludable basado en plantas** y los **8 Remedios Naturales**.
+ROL: Eres Genesis, la Guía de Salud del Ministerio de Salud Adventista del distrito Redencion. Tu estilo es **PROFESIONAL, PRÁCTICO, CONCISO y MUY HUMANO**. Tu única función es proveer información clínica **exacta, veraz y rápida**, manteniendo siempre el estándar terapéutico del **ESTILO DE VIDA BASADO EN PLANTAS** (con restricción de carnes, azúcar refinado, y bebidas cafeinadas) y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA:
-1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta.
+1. **CONTESTA DE INMEDIATO Y CONCISO (¡PRIORIDAD!):** Omite cualquier saludo o introducción. Ve directo al **diagnóstico** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante para la consulta, abordando el bienestar FÍSICO Y MENTAL.
 2. Contexto Adventista: Toda prescripción debe estar alineada con los principios bíblicos de salud y la filosofía Adventista.
 3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
 4. Formato: Usa negritas, saltos de línea y emojis.
@@ -98,14 +98,14 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO Y CORREGIDO) ---
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú.
     """
     mensaje_limpio = mensaje_usuario.strip().upper()
     
-    # === 1. TRIAGE DE EMERGENCIA ===
+    # === 1. TRIAGE DE EMERGENCIA (ALERTA ROJA INMEDIATA) ===
     if any(keyword in mensaje_limpio for keyword in EMERGENCY_KEYWORDS):
         return """
 🔴 *ALERTA ROJA: DETENTE INMEDIATAMENTE* 🔴
@@ -159,7 +159,7 @@ Tu vida es la prioridad.
         TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
         
         1. Identifica el Remedio Natural solicitado (Nutrición, Agua, etc.).
-        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud.
+        2. Genera un consejo práctico y una explicación concisa y motivadora sobre cómo aplicar ese pilar de salud, mencionando el enfoque Adventista (ej: restricción de cafeína, etc.).
         3. Cierra con un versículo bíblico ALTAMENTE RELEVANTE a ese pilar específico.
         
         Responde al grano, manteniendo el tono profesional y el enfoque Adventista.
@@ -288,58 +288,4 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
         )
 
     # Palabras clave para ejercicio (directa)
-    keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO", "PODER 8"]
-    if any(k in mensaje_limpio for k in keywords_ejercicio):
-        # Redirigimos a la opción 5
-        return consultar_gemini(celular, "5") 
-
-
-    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
-    try:
-        # La IA va directo al grano y la respuesta es concisa (REGLA 1 y 5 del INSTRUCCION_SISTEMA)
-        prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
-        
-        response = model.generate_content(prompt_full)
-     
-        texto = response.text.replace('**', '*').replace('__', '_')
-        return texto
-    except Exception as e:
-        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
-        return """
-⚠️ Lo siento, Genesis está en una consulta crítica.
-Intenta de nuevo en un momento."
-"""
-
-
-# ==========================================
-# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
-# ==========================================
-@app.route('/')
-def home():
-    return render_template('index.html')
-
-@app.route('/chat', methods=['POST'])
-def chat():
-    celular_raw = request.values.get('From', 'Web User')
-    celular = celular_raw.replace('whatsapp:', '')
-    if celular.startswith('+'):
-        celular = celular[1:]
-        
-    mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
-    
-    print(f"📩 Recibido de {celular}: {mensaje_in}")
-
-    respuesta = consultar_gemini(celular, mensaje_in)
-    
-    guardar_historial(celular, mensaje_in, respuesta)
-
-    if 'whatsapp' in celular_raw.lower():
-        resp = MessagingResponse()
-        resp.message(respuesta)
-        return str(resp), 200, {'Content-Type': 'application/xml'}
-    else:
-        return jsonify({"respuesta": respuesta})
-
-if __name__ == '__main__':
-    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
-    app.run(port=os.environ.get('PORT', 5000), debug=True)
+    keywords_ejercicio = ["EJERCICIO", "GIMNASIO", "ENTRENAMIENTO", "RUTINA", "MÚSCULO",
