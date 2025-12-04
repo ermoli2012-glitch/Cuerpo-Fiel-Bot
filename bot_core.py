@@ -28,18 +28,18 @@ RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (ANÁLISIS OCULTO Y RECETA TERAPÉUTICA)
+# 2. INSTRUCCIÓN MAESTRA (ROL: MÉDICO INTERNISTA Y NUTRICIONISTA)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL INTERNO: Eres Genesis, con la autoridad profesional de un Médico Especialista en Medicina Interna y Nutricionista Clínico. Tu rol visible al usuario es **Tu Guía Saludable** del Ministerio de Salud Adventista del distrito Redencion. Tu estilo debe ser **100% HUMANO, empático, profesional, práctico y cálido**.
+ROL INTERNO: Eres Genesis, con la autoridad profesional de un **Médico Especialista en Medicina Interna y Nutricionista Clínico**. Tu rol visible al usuario es **Tu Guía Saludable** del Ministerio de Salud Adventista del distrito Redencion. Tu estilo debe ser **100% HUMANO, empático, profesional, práctico y cálido**.
 
 REGLAS DE PROCESAMIENTO (INTERNAS - NUNCA VISIBLES AL USUARIO):
 1. **ANÁLISIS DE ESPECIALISTA:** Utiliza tu conocimiento de Medicina Interna y Nutrición para hacer un diagnóstico presuntivo y formular la recomendación clínica más avanzada.
 2. **PRIORIDAD MÁXIMA:** La conversación debe fluir de forma natural. Omite cualquier texto que suene a "Regla", "Análisis Interno", o títulos de especialidad.
-3. ESTÁNDAR TERAPÉUTICO: La prescripción se basa en el **estilo de vida más saludable basado en plantas** (con estricta recomendación de restringir carnes, azúcar refinado y bebidas cafeinadas) y los **8 Remedios Naturales**.
+3. ESTÁNDAR TERAPÉUTICO: La prescripción se basa en el **estilo de vida más saludable basado en plantas** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA VISIBLE AL USUARIO:
-1. **RESPUESTA DIRECTA Y NATURAL (TERAPÉUTICA):** Ve directo al **diagnóstico presuntivo** (sin ser extenso) y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante. La prescripción debe ser una **RECETA** que detalle los **procedimientos y pasos de acción exitosos** para dar solución al problema.
+1. **RESPUESTA DIRECTA Y NATURAL (TERAPÉUTICA):** Ve directo al **diagnóstico presuntivo** (sin ser extenso) y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante. La prescripción debe ser una **RECETA** que detalle los procedimientos y pasos de acción exitosos.
 2. Contexto de Fe: Toda prescripción debe estar alineada con los principios bíblicos de salud.
 3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
 4. Formato: Usa negritas, saltos de línea y emojis.
@@ -67,8 +67,11 @@ MENU_SERVICIOS = f"""
 * **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
 * **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
+* **6️⃣ HIPERTENSIÓN (HTA):** Protocolo de Estilo de Vida para Presión Arterial.
+* **7️⃣ DIABETES (DM2):** Protocolo Nutricional para Control de Azúcar.
+* **8️⃣ LÍPIDOS/CORAZÓN:** Protocolo para Colesterol y Salud Cardiovascular.
 
-*Responde solo con el número (ej: 0 o 5) o escribe **SALIR** para volver aquí.*
+*Responde solo con el número (ej: 0, 1, 6 o SALIR) para volver aquí.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
@@ -104,7 +107,7 @@ def guardar_historial(celular, mensaje, respuesta):
                 conn.close()
 
 
-# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL CORREGIDO Y FINAL) ---
+# --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú.
@@ -127,7 +130,7 @@ Tu vida es la prioridad.
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
         
-    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLE DE "SÍ") ===
+    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLÉ DE "SÍ") ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
     keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
@@ -247,38 +250,64 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
    B. **Conciencia Corporal:** ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
    C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!
 """
-
-    # === 6. LÓGICA DE PROCESAMIENTO DE EVALUACIÓN (RESPUESTA A LA OPCIÓN 0) ===
-
-    # Patrón para detectar la respuesta a la evaluación (ej: "8, 3, 4" o "8 3 4")
-    import re
-    # Esta lógica se activa si la respuesta contiene 3 o más números separados por espacios o comas.
-    if re.match(r'^\s*[\d\s,]+$', mensaje_usuario) and len(re.findall(r'\d+', mensaje_usuario)) >= 3:
-        
-        # PROMPT DE DELEGACIÓN A GEMINI PARA ANÁLISIS DE HÁBITOS
-        prompt_evaluacion = f"""
+    # 6, 7, 8: MÓDULOS DE ENFERMEDADES PREVALENTES (ESPECIALIZACIÓN CLÍNICA)
+    
+    # 6. HIPERTENSIÓN (HTA)
+    if mensaje_limpio == "6":
+        prompt_hta = f"""
         {INSTRUCCION_SISTEMA}
-        
-        CONTEXTO DE CONVERSACIÓN: El usuario acaba de completar la Evaluación Rápida de Hábitos con los siguientes datos: "{mensaje_usuario}". (Los valores representan: 1. Vasos de agua/día, 2. Frecuencia de ejercicio/semana, 3. Satisfacción de descanso/5).
-        
-        TAREA ESPECÍFICA: 
-        1. Analiza los 3 datos proporcionados para identificar el pilar más débil y el más fuerte del usuario.
-        2. Genera un **resumen conciso y motivador** de los resultados.
-        3. Da una **recomendación de UN SOLO REMEDIO NATURAL** que deben mejorar de forma inmediata.
-        4. Cierra invitando a iniciar la **Consulta Clínica (Opción 1)** para un plan de acción detallado.
-        
-        Responde en un tono profesional y práctico.
+        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una **RECETA** para el manejo de la Hipertensión Arterial (HTA). 
+        1. Explica brevemente la relación de la HTA con el estilo de vida.
+        2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Dieta, Ejercicio, Agua). 
+        3. El consejo debe incluir la meta de reducción de sodio y la importancia de alimentos integrales.
+        4. Cierra con versículo bíblico relevante.
+        Responde al grano.
         """
         try:
-            response = model.generate_content(prompt_evaluacion)
+            response = model.generate_content(prompt_hta)
             texto = response.text.replace('**', '*').replace('__', '_')
             return texto
         except Exception as e:
-            print(f"❌ ERROR GEMINI (EVALUACIÓN): {e}")
-            return "⚠️ Lo siento, no pude procesar tu evaluación ahora. Escribe 'HOLA' e intenta de nuevo con la Opción 1 (Consulta Clínica)."
+            return "⚠️ Lo siento, no pude generar el Protocolo HTA ahora."
+            
+    # 7. DIABETES (DM2)
+    if mensaje_limpio == "7":
+        prompt_dm2 = f"""
+        {INSTRUCCION_SISTEMA}
+        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una **RECETA** para el manejo de la Diabetes Mellitus Tipo 2 (DM2). 
+        1. Explica brevemente el rol de la resistencia a la insulina.
+        2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición y Ejercicio). 
+        3. El consejo debe incluir la gestión del índice glucémico y la importancia de la fibra dietética.
+        4. Cierra con versículo bíblico relevante.
+        Responde al grano.
+        """
+        try:
+            response = model.generate_content(prompt_dm2)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return "⚠️ Lo siento, no pude generar el Protocolo DM2 ahora."
+            
+    # 8. LÍPIDOS/CORAZÓN
+    if mensaje_limpio == "8":
+        prompt_corazon = f"""
+        {INSTRUCCION_SISTEMA}
+        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una **RECETA** para el manejo de la Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular. 
+        1. Explica la importancia de la salud endotelial.
+        2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición para lípidos y Ejercicio). 
+        3. El consejo debe incluir la eliminación de grasas saturadas y el aumento de fibra soluble (avena, legumbres).
+        4. Cierra con versículo bíblico relevante.
+        Responde al grano.
+        """
+        try:
+            response = model.generate_content(prompt_corazon)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return "⚠️ Lo siento, no pude generar el Protocolo Cardiovascular ahora."
 
 
-    # === 7. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
+    # === 9. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
     
     # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
     keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
@@ -309,7 +338,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
             print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
             return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
 
-    # === 9. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
+    # === 10. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
         # Si el mensaje pasa todas las lógicas anteriores, es una pregunta de salud
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
@@ -327,7 +356,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 10. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# 11. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
