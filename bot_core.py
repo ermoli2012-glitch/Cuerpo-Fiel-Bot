@@ -52,13 +52,13 @@ EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "
 
 # --- MENÚ DE SERVICIOS (Texto para la activación con "hola" o "menu") ---
 MENU_SERVICIOS = f"""
-⭐ **¡HOLA! SOY GENESIS** ⭐
+⭐ *¡HOLA! SOY GENESIS* ⭐
 *Tu guía saludable del Distrito Redención.*
 
 🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
 
 ----------------------------------------
-** Selecciona una opción para empezar:**
+* Selecciona una opción para empezar:*
 ----------------------------------------
 
 * **0️⃣ EVALUACIÓN:** ¡Descubre tu punto de partida! (Preguntas rápidas sobre tus 8 Remedios).
@@ -66,7 +66,7 @@ MENU_SERVICIOS = f"""
 * **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
 * **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
 * **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
-* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al **Reto Poder 8** y entrena de forma inteligente!
+* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al *Reto Poder 8* y entrena de forma inteligente!
 * **6️⃣ HIPERTENSIÓN (HTA):** Protocolo de Estilo de Vida para Presión Arterial.
 * **7️⃣ DIABETES (DM2):** Protocolo Nutricional para Control de Azúcar.
 * **8️⃣ LÍPIDOS/CORAZÓN:** Protocolo para Colesterol y Salud Cardiovascular.
@@ -129,36 +129,66 @@ Tu vida es la prioridad.
     # === 2. LÓGICA CONDICIONAL DE MENÚ/SALIDA (PRIORIDAD MÁXIMA) ===
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
+
+    # === 3. LÓGICA DE ANÁLISIS DE PERFIL INTEGRAL (NUEVA PRIORIDAD) ===
+    # Busca la palabra clave que colocamos en el frontend para activar el análisis completo.
+    if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio or "ANALIZA PERFIL INTEGRAL" in mensaje_limpio:
+        prompt_perfil = f"""
+        {INSTRUCCION_SISTEMA}
         
-    # === 3. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLÉ DE "SÍ") ===
+        CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral generado por la aplicación Cuerpo Fiel.
+        
+        TAREA CRÍTICA:
+        1. **NO** repitas el menú de servicios.
+        2. **NO** repitas el texto del perfil.
+        3. Genera inmediatamente el **DIAGNÓSTICO PRESUNTIVO** (basado en IMC, PA y PHQ-9).
+        4. Formula una **RECETA DE ACCIÓN** que priorice y explique **UN SOLO REMEDIO NATURAL** que aborde el problema más débil (ej., si el PHQ-9 es Severo, prioriza Esperanza en Dios o Descanso).
+        5. Cierra con la pregunta interactiva y la referencia médica estándar.
+        
+        PERFIL INTEGRAL DEL PACIENTE:
+        ---
+        {mensaje_usuario}
+        ---
+        """
+        
+        try:
+            response = model.generate_content(prompt_perfil)
+            # Limpiamos el texto de Gemini
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (ANÁLISIS DE PERFIL): {e}")
+            return "⚠️ Lo siento, no pude generar el análisis de perfil ahora. Intenta de nuevo."
+        
+    # === 4. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLÉ DE "SÍ") ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
     keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
     
-    # 3.1 Respuesta a "NO"
+    # 4.1 Respuesta a "NO"
     if any(k in mensaje_limpio for k in keywords_no_info):
         return "¡Entendido! Siempre estoy aquí para cuando me necesites. No olvides que la salud es un viaje. 👋"
 
-    # 3.2 Respuesta a "SÍ" / "SABER MÁS" (Muestra la lista)
+    # 4.2 Respuesta a "SÍ" / "SABER MÁS" (Muestra la lista)
     if any(k in mensaje_limpio for k in keywords_mas_info):
         return """
-✨ **Los 8 Pilares de la Salud** ✨
+✨ *Los 8 Pilares de la Salud* ✨
 
-¡Me encanta tu interés por la **restauración completa**! Estos son los **8 Remedios Naturales** que promueven la sanidad integral, tal como los enseñan las Escrituras:
+¡Me encanta tu interés por la *restauración completa*! Estos son los *8 Remedios Naturales* que promueven la sanidad integral, tal como los enseñan las Escrituras:
 
-1.  **🌿 Nutrición (Alimentos sanos)**
-2.  **💧 Agua**
-3.  **☀️ Luz Solar**
-4.  **🏃 Ejercicio**
-5.  **🌬️ Aire Puro**
-6.  **😴 Descanso**
-7.  **🧘 Templanza** (Moderación y Equilibrio)
-8.  **🙏 Esperanza en Dios** (Confianza en el poder divino)
+1.  *🌿 Nutrición (Alimentos sanos)*
+2.  *💧 Agua*
+3.  *☀️ Luz Solar*
+4.  *🏃 Ejercicio*
+5.  *🌬️ Aire Puro*
+6.  *😴 Descanso*
+7.  *🧘 Templanza* (Moderación y Equilibrio)
+8.  *🙏 Esperanza en Dios* (Confianza en el poder divino)
 
 *¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
 """
         
-    # === 4. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
+    # === 5. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
 
     keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
     
@@ -188,12 +218,12 @@ Tu vida es la prioridad.
             return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
 
 
-    # === 5. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
+    # === 6. LÓGICA INTERACTIVA POR NÚMERO (OPCIONES DEL MENÚ PRINCIPAL) ===
     
     # 0. EVALUACIÓN DE HÁBITOS (Nueva Opción 0)
     if mensaje_limpio == "0" or "EVALUACIÓN" in mensaje_limpio:
         return (
-            "✅ **Evaluación Rápida de Hábitos**\n\n"
+            "✅ *Evaluación Rápida de Hábitos*\n\n"
             "Responde a las siguientes 3 preguntas para una guía más precisa:\n"
             "1. ¿En promedio, cuántos vasos de agua simple consumes al día?\n"
             "2. ¿Cuántas veces a la semana realizas ejercicio moderado a intenso (mínimo 30 min)?\n"
@@ -204,7 +234,7 @@ Tu vida es la prioridad.
     # 1. CONSULTA CLÍNICA
     if mensaje_limpio == "1":
         return (
-            "🩺 **Consulta Clínica: Pregunta al instante**\n\n"
+            "🩺 *Consulta Clínica: Pregunta al instante*\n\n"
             "¡Listo/a! Escribe tu pregunta sobre cualquier síntoma, condición o necesidad de tratamiento natural. "
             "Recuerda que mis consejos se basan en la dieta saludable y los 8 Remedios Naturales."
         )
@@ -212,43 +242,43 @@ Tu vida es la prioridad.
     # 2. APOYO PSICOLÓGICO
     if mensaje_limpio == "2":
         return (
-            "🧠 **Apoyo Psicológico: Paz Mental**\n\n"
+            "🧠 *Apoyo Psicológico: Paz Mental*\n\n"
             "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
             "estrés o ansiedad, comunícate al:\n"
-            f"📲 **Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}**\n\n"
+            f"📲 *Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}*\n\n"
             "«El reposo mental es una parte esencial de la adoración a Dios.»"
         )
         
     # 3. COMUNIDAD DE FE
     if mensaje_limpio == "3":
         return (
-            "📍 **Comunidad de Fe: Encuentra tu Hogar**\n\n"
+            "📍 *Comunidad de Fe: Encuentra tu Hogar*\n\n"
             "Para un crecimiento integral, es vital congregarse. Usa el siguiente enlace para buscar "
             "tu iglesia Adventista o Centro de Vida Sana más cercano:\n"
-            f"🔗 **[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})**"
+            f"🔗 *[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})*"
         )
         
     # 4. RADIO ADVENTISTA
     if mensaje_limpio == "4":
         return (
-            "📻 **Voz de Esperanza: Inspiración Diaria**\n\n"
+            "📻 *Voz de Esperanza: Inspiración Diaria*\n\n"
             "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
-            f"🔗 **[AWR Colombia]({RADIO_LINK})**"
+            f"🔗 *[AWR Colombia]({RADIO_LINK})*"
         )
         
     # 5. MÓDULO EJERCICIO: PODER 8 (Entrada)
     if mensaje_limpio == "5":
         return """
-💪 **¡Bienvenido al Reto Poder 8!** 🚀
+💪 *¡Bienvenido al Reto Poder 8!* 🚀
 
-Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Naturales**.
+Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Naturales*.
 
-🧠 *Inteligencia Viral:* Ajustamos tu rutina según tu **conexión mental-músculo** y tu **ritmo de reposo sabático**.
+🧠 *Inteligencia Viral:* Ajustamos tu rutina según tu *conexión mental-músculo* y tu *ritmo de reposo sabático*.
 
 🔥 *¿Cómo te gustaría empezar?*
-   A. **Mi Rutina:** Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').
-   B. **Conciencia Corporal:** ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
-   C. **Comunidad:** ¡Quiero unirme al desafío de puntos de vitalidad!
+   A. *Mi Rutina:* Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').
+   B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
+   C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!
 """
     # 6, 7, 8: MÓDULOS DE ENFERMEDADES PREVALENTES (ESPECIALIZACIÓN CLÍNICA)
     
@@ -256,7 +286,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
     if mensaje_limpio == "6":
         prompt_hta = f"""
         {INSTRUCCION_SISTEMA}
-        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una **RECETA** para el manejo de la Hipertensión Arterial (HTA). 
+        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* para el manejo de la Hipertensión Arterial (HTA). 
         1. Explica brevemente la relación de la HTA con el estilo de vida.
         2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Dieta, Ejercicio, Agua). 
         3. El consejo debe incluir la meta de reducción de sodio y la importancia de alimentos integrales.
@@ -274,7 +304,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
     if mensaje_limpio == "7":
         prompt_dm2 = f"""
         {INSTRUCCION_SISTEMA}
-        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una **RECETA** para el manejo de la Diabetes Mellitus Tipo 2 (DM2). 
+        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* para el manejo de la Diabetes Mellitus Tipo 2 (DM2). 
         1. Explica brevemente el rol de la resistencia a la insulina.
         2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición y Ejercicio). 
         3. El consejo debe incluir la gestión del índice glucémico y la importancia de la fibra dietética.
@@ -292,7 +322,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
     if mensaje_limpio == "8":
         prompt_corazon = f"""
         {INSTRUCCION_SISTEMA}
-        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una **RECETA** para el manejo de la Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular. 
+        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* para el manejo de la Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular. 
         1. Explica la importancia de la salud endotelial.
         2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición para lípidos y Ejercicio). 
         3. El consejo debe incluir la eliminación de grasas saturadas y el aumento de fibra soluble (avena, legumbres).
@@ -307,7 +337,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
             return "⚠️ Lo siento, no pude generar el Protocolo Cardiovascular ahora."
 
 
-    # === 9. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
+    # === 7. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
     
     # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
     keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
@@ -319,13 +349,13 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
         prompt_sub_menu = f"""
         {INSTRUCCION_SISTEMA}
         
-        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del **Módulo de Ejercicio Reto Poder 8**. 
+        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del *Módulo de Ejercicio Reto Poder 8*. 
         
         TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
         
-        * Si el usuario pide **Rutina (A)** o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
-        * Si el usuario pide **Conciencia Corporal (B)** o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
-        * Si el usuario pide **Comunidad (C)**, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
+        * Si el usuario pide *Rutina (A)* o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
+        * Si el usuario pide *Conciencia Corporal (B)* o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
+        * Si el usuario pide *Comunidad (C)*, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
         
         Responde al grano, manteniendo el tono profesional y el enfoque Poder 8.
         """
@@ -338,7 +368,7 @@ Este es un módulo de entrenamiento innovador que equilibra los **8 Remedios Nat
             print(f"❌ ERROR GEMINI (RESPUESTA MÓDULO 5): {e}")
             return "⚠️ Lo siento, no puedo generar esa respuesta ahora. Intenta de nuevo describiendo tu objetivo."
 
-    # === 10. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
+    # === 8. LÓGICA NORMAL (IA CON JUICIO CLÍNICO) ===
     try:
         # Si el mensaje pasa todas las lógicas anteriores, es una pregunta de salud
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
@@ -356,7 +386,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 11. RUTAS WEB Y DE WHATSAPP (Sin cambios)
+# 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
 @app.route('/')
 def home():
