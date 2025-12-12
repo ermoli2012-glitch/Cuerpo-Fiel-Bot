@@ -23,7 +23,7 @@ except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
 # --- DATOS DE CONTACTO Y ENLACES (Variables de uso interno) ---
-WHATSAPP_CONTACTO_PSICOLOGIA = "3122521843"
+WHATSAPP_CONTACTO_PSICOLOGIA = "proximamente"
 RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
