@@ -23,8 +23,8 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# --- CLAVES DE SEGURIDAD Y ENLACES ---
-CLIENT_SECRET_KEY = "CF_CLAVE_12025" // <--- CLAVE SECRETA DE LA APP
+# --- CLAVES DE SEGURIDAD Y ENLACES (CORRECCIÓN DE SINTAXIS) ---
+CLIENT_SECRET_KEY = "CF_CLAVE_12025" # <--- CLAVE SECRETA DE LA APP
 WHATSAPP_CONTACTO_PSICOLOGIA = "+573105551234" 
 RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
@@ -193,7 +193,7 @@ def consultar_gemini(celular, mensaje_usuario):
     
     # === 1. RESTRICCIÓN DE ACCESO (PRIORIDAD MÁXIMA PARA AHORRO) ===
     # Si el mensaje NO contiene la clave, ni es un comando de bienvenida, lo rechazamos.
-    if CLIENT_SECRET_KEY not in mensaje_limpio and mensaje_limpio not in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
+    if CLIENT_SECRET_KEY not in mensaje_limpio and mensaje_limpio not in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]:
         return """
 🚫 *Acceso Restringido - Fuente No Autorizada* 🚫
         
@@ -367,6 +367,9 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
         return ("📻 *Voz de Esperanza: Inspiración Diaria*\n\n" "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n" f"🔗 *[AWR Colombia]({RADIO_LINK})*")
     if mensaje_limpio == "5":
         return ("💪 *¡Bienvenido al Reto Poder 8!* 🚀\n\n" "Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Naturales*.\n\n" "🧠 *Inteligencia Viral:* Ajustamos tu rutina según tu *conexión mental-músculo* y tu *ritmo de reposo sabático*.\n\n" "🔥 *¿Cómo te gustaría empezar?*\n   A. *Mi Rutina:* Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').\n   B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?\n   C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!")
+    if mensaje_limpio == "9" or "PROGRESO" in mensaje_limpio:
+        return ("📈 *Puntaje de Vitalidad ⚡ (0-100)*\n\n" "Para calcular tu Puntaje de Vitalidad, necesito tu perfil más reciente.\n" "Vuelve a la aplicación **Cuerpo Fiel**, presiona el botón 'Preguntar a Genesis' y pega el texto aquí.\n\n" "El puntaje mide tu equilibrio en los 8 Remedios Naturales. ¡Te sorprenderás!")
+    
     
     # === 8. LÓGICA NORMAL (Cualquier otra pregunta NO identificada) ===
     try:
