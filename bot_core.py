@@ -253,7 +253,7 @@ def consultar_gemini(celular, mensaje_usuario):
     """
     mensaje_limpio = mensaje_usuario.strip().upper()
     
-    # === 1. RESTRICCIÓN DE ACCESO (PRIORIDAD MÁXIMA PARA AHORRO) ===
+    # === 1. RESTRICCIÓN DE ACCESO Y COMANDOS PERMITIDOS ===
     comandos_permitidos = ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0", "1", "2", "3", "4", "P", "C", "O", "H", "D", "L", "E", "A", "I", "R", "F"]
     
     # Restricción general para cualquier mensaje que no sea un comando o no contenga la clave
@@ -277,13 +277,10 @@ Tu vida es la prioridad.
 
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
-
-    # =========================================================
-    # 3. PROCESAMIENTO DE PERFIL / PLAN (ALTA PRIORIDAD)
-    # =========================================================
     
-    # --- PERFIL DE SALUD (Enviado desde la App) ---
-    if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio:
+    # === 3. PROCESAMIENTO DE PERFIL DE SALUD (MÁXIMA PRIORIDAD) ===
+    # Se busca la clave de inicio del perfil.
+    if "PERFIL DE SALUD INTEGRAL INICIO" in mensaje_limpio:
         
         # --- VALIDACIÓN DE DATOS ANTES DE LLAMAR A GEMINI (GUÍA ACTIVA) ---
         error_validacion = validar_datos_criticos(mensaje_usuario)
@@ -311,7 +308,6 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
         {INSTRUCCION_SISTEMA}
         
         // --- INSTRUCCIÓN ESPECÍFICA DE TAREA ---
-        // Genera el análisis basado en el Perfil.
         
         CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral generado por la aplicación Cuerpo Fiel. El identificador es: {telefono_extraido}.
         
@@ -334,38 +330,13 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
             print(f"❌ ERROR GEMINI (ANÁLISIS DE PERFIL): {e}")
             return "⚠️ Lo siento, no pude generar el análisis de perfil ahora. Intenta de nuevo."
         
-    # --- PLAN NUTRICIONAL (Protegido por Código) ---
-    if "PLAN NUTRICIONAL SOLICITADO" in mensaje_limpio:
-        
-        match_code = re.search(r'(IASD2025|IASD\s*2025)', mensaje_limpio) 
-        
-        if not match_code:
-            return "❌ *ACCESO DENEGADO:* Por favor, solicita el código *IASD2025* al Director de Salud."
-        
-        prompt_nutricional = f"""
-        {INSTRUCCION_SISTEMA}
-        
-        CONTEXTO: El usuario está solicitando un Plan Nutricional de 7 días. El perfil de salud completo está adjunto al mensaje.
-        
-        TAREA CRÍTICA:
-        1. Genera un Plan Nutricional Vegano/Adventista de 7 días adaptado al perfil de salud que se adjunta. 
-        2. El plan debe ser estricto en la eliminación de carnes, lácteos, azúcar refinado y cafeína.
-        3. Debe ser fácil de seguir y resaltar alimentos que ayuden a la condición más débil del usuario.
-        4. Provee una lista de compras básica.
-        5. Cierra con un versículo y la referencia médica.
-        
-        PERFIL DE SALUD: {mensaje_usuario}
-        """
-        try:
-            response = model.generate_content(prompt_nutricional)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            print(f"❌ ERROR GEMINI (PLAN NUTRICIONAL): {e}")
-            return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
+    # === 4. LÓGICA CONDICIONAL DE MENÚ/SALIDA (CORREGIDA) ===
+    # Se coloca aquí para que solo se active si NO es un perfil.
+    if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0"]:
+        return MENU_SERVICIOS 
 
     # =========================================================
-    # 4. PROCESAMIENTO DE COMANDOS DE MENÚ (MENOR PRIORIDAD)
+    # 5. PROCESAMIENTO DE COMANDOS DE MENÚ (MENOR PRIORIDAD)
     # =========================================================
 
     # --- NAVEGACIÓN PRINCIPAL ---
@@ -416,7 +387,16 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
     if mensaje_limpio == "P" or mensaje_limpio == "PSICOLÓGICO":
         return ("🧠 *Apoyo Psicológico: Paz Mental*\n\n" "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar " "estrés o ansiedad, comunícate al:\n" f"📲 *Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}*\n\n" "«El reposo mental es una parte esencial de la adoración a Dios.»")
     if mensaje_limpio == "E" or mensaje_limpio == "EJERCICIO":
-        return ("💪 *¡Bienvenido al Reto Poder 8!* 🚀\n\n" "Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Naturales*.\n\n" "🔥 *¿Cómo te gustaría empezar?*\n   A. *Mi Rutina:* Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').\n   B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?\n   C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!")
+        return """
+💪 *¡Bienvenido al Reto Poder 8!* 🚀
+
+Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Naturales*.
+
+🔥 *¿Cómo te gustaría empezar?*
+   A. *Mi Rutina:* Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').
+   B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
+   C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!
+"""
     if mensaje_limpio == "A" or mensaje_limpio == "EVALUACIÓN RÁPIDA":
         return ("✅ *Evaluación Rápida de Hábitos*\n\n" "Responde a las siguientes 3 preguntas para una guía más precisa:\n" "1. ¿En promedio, cuántos vasos de agua simple consumes al día?\n" "2. ¿Cuántas veces a la semana realizas ejercicio moderado a intenso (mínimo 30 min)?\n" "3. ¿Qué tan satisfecho/a estás con tu descanso nocturno (1-5)?\n\n" "*(Responde con los 3 números: ej. 8, 3, 4)*")
 
@@ -461,7 +441,37 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
         except Exception as e:
             return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
 
-    # === 9. LÓGICA FINAL (PREGUNTA ABIERTA O ERROR) ===
+    # === 6. LÓGICA DE PLAN NUTRICIONAL (Protegido por Código) ===
+    if "PLAN NUTRICIONAL SOLICITADO" in mensaje_limpio:
+        
+        match_code = re.search(r'(IASD2025|IASD\s*2025)', mensaje_limpio) 
+        
+        if not match_code:
+            return "❌ *ACCESO DENEGADO:* Por favor, solicita el código *IASD2025* al Director de Salud."
+        
+        prompt_nutricional = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        CONTEXTO: El usuario está solicitando un Plan Nutricional de 7 días. El perfil de salud completo está adjunto al mensaje.
+        
+        TAREA CRÍTICA:
+        1. Genera un Plan Nutricional Vegano/Adventista de 7 días adaptado al perfil de salud que se adjunta. 
+        2. El plan debe ser estricto en la eliminación de carnes, lácteos, azúcar refinado y cafeína.
+        3. Debe ser fácil de seguir y resaltar alimentos que ayuden a la condición más débil del usuario.
+        4. Provee una lista de compras básica.
+        5. Cierra con un versículo y la referencia médica.
+        
+        PERFIL DE SALUD: {mensaje_usuario}
+        """
+        try:
+            response = model.generate_content(prompt_nutricional)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (PLAN NUTRICIONAL): {e}")
+            return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
+
+    # === 7. LÓGICA FINAL (PREGUNTA ABIERTA O ERROR) ===
     try:
         # Cualquier pregunta que no haya caído en los comandos específicos
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
@@ -479,7 +489,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 10. RUTAS WEB Y DE WHATSAPP (Mantenidas)
+# 8. RUTAS WEB Y DE WHATSAPP (Mantenidas)
 # ==========================================
 @app.route('/')
 def home():
