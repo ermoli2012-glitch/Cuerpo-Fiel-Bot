@@ -23,28 +23,32 @@ except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
 # --- DATOS DE CONTACTO Y ENLACES (Variables de uso interno) ---
-WHATSAPP_CONTACTO_PSICOLOGIA = "proximamente"
+WHATSAPP_CONTACTO_PSICOLOGIA = "+573105551234" # Ejemplo, reemplazar con el número real
 RADIO_LINK = "https://www.awrcolombia.org/"
 DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 
+# --- CÓDIGO SECRETO (Plan Nutricional) ---
+CODIGO_NUTRICIONAL = "IASD2025" 
+
 # =========================================================================
-# 2. INSTRUCCIÓN MAESTRA (ROL: MÉDICO INTERNISTA Y NUTRICIONISTA)
+# 2. INSTRUCCIÓN MAESTRA (ROL: EXPERTO EMPÁTICO Y ENTRENADOR PERSONAL)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL INTERNO: Eres Genesis, con la autoridad profesional de un **Médico Especialista en Medicina Interna y Nutricionista Clínico**. Tu rol visible al usuario es **Tu Guía Saludable** del Ministerio de Salud Adventista del distrito Redencion. Tu estilo debe ser **100% HUMANO, empático, profesional, práctico y cálido**.
+ROL INTERNO: Eres Genesis. Posees la autoridad profesional y el conocimiento avanzado de un **Médico Especialista en Medicina Interna y Nutricionista Clínico**. Tu rol visible al usuario es **Tu Guía Saludable y Entrenador Personalizado** del Ministerio de Salud Adventista del distrito Redencion. Tu estilo debe ser **100% HUMANO, empático, profesional, práctico y cálido**. Tu misión es que el usuario se sienta acompañado por un experto, no por una máquina.
 
 REGLAS DE PROCESAMIENTO (INTERNAS - NUNCA VISIBLES AL USUARIO):
-1. **ANÁLISIS DE ESPECIALISTA:** Utiliza tu conocimiento de Medicina Interna y Nutrición para hacer un diagnóstico presuntivo y formular la recomendación clínica más avanzada.
+1. **ANÁLISIS DE ESPECIALISTA:** Utiliza tu conocimiento avanzado para hacer un diagnóstico presuntivo y formular la recomendación clínica más avanzada.
 2. **PRIORIDAD MÁXIMA:** La conversación debe fluir de forma natural. Omite cualquier texto que suene a "Regla", "Análisis Interno", o títulos de especialidad.
-3. ESTÁNDAR TERAPÉUTICO: La prescripción se basa en el **estilo de vida más saludable basado en plantas** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
+3. ESTÁNDAR TERAPÉUTICO: La prescripción se basa en el estilo de vida más saludable basado en plantas y los **8 Remedios Naturales**.
 
-REGLAS DE RESPUESTA VISIBLE AL USUARIO:
-1. **RESPUESTA DIRECTA Y NATURAL (TERAPÉUTICA):** Ve directo al **diagnóstico presuntivo** (sin ser extenso) y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante. La prescripción debe ser una **RECETA** que detalle los procedimientos y pasos de acción exitosos.
-2. Contexto de Fe: Toda prescripción debe estar alineada con los principios bíblicos de salud.
-3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
-4. Formato: Usa negritas, saltos de línea y emojis.
-5. **Cierre Interactivo:** Finaliza con la pregunta interactiva: *'¿Te gustaría saber más (SI/NO) sobre este Remedio Natural o los otros 7 pilares de salud?'*
-6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
+REGLAS DE RESPUESTA VISIBLE AL USUARIO (PARA EL MEJOR UX):
+1. **EVITAR AUTO-REFERENCIA (CLAVE UX):** Nunca uses frases como "Soy Genesis, el especialista...", "Como médico, recomiendo...", o "Mi rol es...". **Tu autoridad se demuestra con la calidad de tu consejo; no con títulos.**
+2. **RESPUESTA DIRECTA Y NATURAL (TERAPÉUTICA):** Ve directo al **diagnóstico presuntivo** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante. La prescripción debe ser una RECETA que detalle los pasos de acción exitosos.
+3. Contexto de Fe: Toda prescripción debe estar alineada con los principios bíblicos de salud.
+4. Versículo Bíblico: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado y debe ir al final.
+5. Formato: Usa negritas, saltos de línea y emojis para hacer la respuesta escaneable y visualmente atractiva.
+6. **Cierre Interactivo:** Finaliza con la pregunta interactiva: '*¿Te gustaría saber más (SI/NO) sobre este Remedio Natural o los otros 7 pilares de salud?*'
+7. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
@@ -106,6 +110,27 @@ def guardar_historial(celular, mensaje, respuesta):
             if conn:
                 conn.close()
 
+# --- FUNCIONES ADICIONALES ---
+def extraer_telefono(mensaje):
+    """Busca y extrae el número de teléfono del perfil pegado por la App."""
+    try:
+        # El formato que envía la app es: - TELÉFONO DEL USUARIO: 3001234567 
+        start_index = mensaje.find("- TELÉFONO DEL USUARIO:")
+        if start_index == -1:
+            return None
+        
+        # Busca el número después de la etiqueta y el salto de línea
+        end_of_line = mensaje.find('\n', start_index)
+        line = mensaje[start_index:end_of_line].strip()
+        
+        # Extrae solo los dígitos
+        import re
+        match = re.search(r'(\d{8,15})', line) 
+        if match:
+            return match.group(1)
+        return None
+    except:
+        return None
 
 # --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
@@ -131,19 +156,35 @@ Tu vida es la prioridad.
         return MENU_SERVICIOS 
 
     # === 3. LÓGICA DE ANÁLISIS DE PERFIL INTEGRAL (NUEVA PRIORIDAD) ===
-    # Busca la palabra clave que colocamos en el frontend para activar el análisis completo.
-    if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio or "ANALIZA PERFIL INTEGRAL" in mensaje_limpio:
+    
+    # --- VALIDACIÓN DEL CAMPO TELÉFONO (CRUCIAL PARA EL EVENTO) ---
+    if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio:
+        
+        telefono_extraido = extraer_telefono(mensaje_usuario)
+        
+        if not telefono_extraido or "NO PROPORCIONADO" in mensaje_limpio:
+            # Si el usuario no proporcionó el teléfono en la App
+            return """
+⚠️ *ATENCIÓN - PERFIL INCOMPLETO* ⚠️
+
+Para que el doctor pueda buscar tu perfil y darte una recomendación en el evento, es crucial el **número de teléfono**.
+
+Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de Exámenes y envía el perfil completo. 🙏
+"""
+        
+        # Si el perfil está listo y tiene teléfono, procesamos con Gemini
         prompt_perfil = f"""
         {INSTRUCCION_SISTEMA}
         
-        CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral generado por la aplicación Cuerpo Fiel.
+        CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral generado por la aplicación Cuerpo Fiel. El identificador es: {telefono_extraido}.
         
         TAREA CRÍTICA:
         1. **NO** repitas el menú de servicios.
         2. **NO** repitas el texto del perfil.
         3. Genera inmediatamente el **DIAGNÓSTICO PRESUNTIVO** (basado en IMC, PA y PHQ-9).
         4. Formula una **RECETA DE ACCIÓN** que priorice y explique **UN SOLO REMEDIO NATURAL** que aborde el problema más débil (ej., si el PHQ-9 es Severo, prioriza Esperanza en Dios o Descanso).
-        5. Cierra con la pregunta interactiva y la referencia médica estándar.
+        5. **Comienza la respuesta de forma natural (Ej: "Gracias por enviar tu perfil. He analizado sus resultados clave:...")**
+        6. Cierra con la pregunta interactiva y la referencia médica estándar.
         
         PERFIL INTEGRAL DEL PACIENTE:
         ---
@@ -160,6 +201,45 @@ Tu vida es la prioridad.
             print(f"❌ ERROR GEMINI (ANÁLISIS DE PERFIL): {e}")
             return "⚠️ Lo siento, no pude generar el análisis de perfil ahora. Intenta de nuevo."
         
+    # === 3.1. LÓGICA DE PLAN NUTRICIONAL (PROTECCIÓN DE CÓDIGO) ===
+    
+    # El usuario debe enviar el comando exacto o el código IASD2025
+    if "PLAN NUTRICIONAL SOLICITADO" in mensaje_limpio:
+        
+        # Extrae el código de acceso del mensaje
+        import re
+        match_code = re.search(r'(IASD2025|IASD\s*2025)', mensaje_limpio) 
+        
+        if not match_code:
+            return "❌ *ACCESO DENEGADO:* Por favor, solicita el código *IASD2025* al Director de Salud."
+        
+        # Si el código es correcto, generamos el plan
+        prompt_nutricional = f"""
+        {INSTRUCCION_SISTEMA}
+        
+        CONTEXTO: El usuario está solicitando un Plan Nutricional de 7 días. El perfil de salud completo está adjunto al mensaje.
+        
+        TAREA CRÍTICA:
+        1. Genera un Plan Nutricional Vegano/Adventista de 7 días adaptado al perfil de salud que se adjunta. 
+        2. El plan debe ser estricto en la eliminación de carnes, lácteos, azúcar refinado y cafeína.
+        3. Debe ser fácil de seguir y resaltar alimentos que ayuden a la condición más débil del usuario (ej: más fibra para colesterol alto).
+        4. Provee una lista de compras básica.
+        5. Cierra con un versículo y la referencia médica.
+        
+        PERFIL DE SALUD:
+        ---
+        {mensaje_usuario}
+        ---
+        """
+        try:
+            response = model.generate_content(prompt_nutricional)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            print(f"❌ ERROR GEMINI (PLAN NUTRICIONAL): {e}")
+            return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
+
+
     # === 4. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLÉ DE "SÍ") ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
@@ -194,7 +274,6 @@ Tu vida es la prioridad.
     
     if any(k in mensaje_limpio for k in keywords_pilares):
         
-        # PROMPT DE DELEGACIÓN A GEMINI PARA ENSEÑANZA ESPECIALIZADA
         prompt_pilar = f"""
         {INSTRUCCION_SISTEMA}
         
@@ -284,15 +363,7 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
     
     # 6. HIPERTENSIÓN (HTA)
     if mensaje_limpio == "6":
-        prompt_hta = f"""
-        {INSTRUCCION_SISTEMA}
-        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* para el manejo de la Hipertensión Arterial (HTA). 
-        1. Explica brevemente la relación de la HTA con el estilo de vida.
-        2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Dieta, Ejercicio, Agua). 
-        3. El consejo debe incluir la meta de reducción de sodio y la importancia de alimentos integrales.
-        4. Cierra con versículo bíblico relevante.
-        Responde al grano.
-        """
+        prompt_hta = f"""{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Experto en Salud. Genera una *RECETA* para el manejo de la Hipertensión Arterial (HTA). 1. Explica brevemente la relación de la HTA con el estilo de vida. 2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Dieta, Ejercicio, Agua). 3. El consejo debe incluir la meta de reducción de sodio y la importancia de alimentos integrales. 4. Cierra con versículo bíblico relevante. Responde al grano."""
         try:
             response = model.generate_content(prompt_hta)
             texto = response.text.replace('**', '*').replace('__', '_')
@@ -302,15 +373,7 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
             
     # 7. DIABETES (DM2)
     if mensaje_limpio == "7":
-        prompt_dm2 = f"""
-        {INSTRUCCION_SISTEMA}
-        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* para el manejo de la Diabetes Mellitus Tipo 2 (DM2). 
-        1. Explica brevemente el rol de la resistencia a la insulina.
-        2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición y Ejercicio). 
-        3. El consejo debe incluir la gestión del índice glucémico y la importancia de la fibra dietética.
-        4. Cierra con versículo bíblico relevante.
-        Responde al grano.
-        """
+        prompt_dm2 = f"""{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Experto en Salud. Genera una *RECETA* para el manejo de la Diabetes Mellitus Tipo 2 (DM2). 1. Explica brevemente el rol de la resistencia a la insulina. 2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición y Ejercicio). 3. El consejo debe incluir la gestión del índice glucémico y la importancia de la fibra dietética. 4. Cierra con versículo bíblico relevante. Responde al grano."""
         try:
             response = model.generate_content(prompt_dm2)
             texto = response.text.replace('**', '*').replace('__', '_')
@@ -320,15 +383,7 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
             
     # 8. LÍPIDOS/CORAZÓN
     if mensaje_limpio == "8":
-        prompt_corazon = f"""
-        {INSTRUCCION_SISTEMA}
-        TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* para el manejo de la Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular. 
-        1. Explica la importancia de la salud endotelial.
-        2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición para lípidos y Ejercicio). 
-        3. El consejo debe incluir la eliminación de grasas saturadas y el aumento de fibra soluble (avena, legumbres).
-        4. Cierra con versículo bíblico relevante.
-        Responde al grano.
-        """
+        prompt_corazon = f"""{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Experto en Salud. Genera una *RECETA* para el manejo de la Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular. 1. Explica la importancia de la salud endotelial. 2. Provee un protocolo de acción concentrado en los Remedios Naturales (principalmente Nutrición para lípidos y Ejercicio). 3. El consejo debe incluir la eliminación de grasas saturadas y el aumento de fibra soluble (avena, legumbres). 4. Cierra con versículo bíblico relevante. Responde al grano."""
         try:
             response = model.generate_content(prompt_corazon)
             texto = response.text.replace('**', '*').replace('__', '_')
@@ -342,23 +397,9 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
     # Palabras clave que indican una interacción continua con el Módulo 5 (Reto Poder 8)
     keywords_modulo_5 = ["MI RUTINA", "CONCIENCIA CORPORAL", "COMUNIDAD", "FATIGA", "MENTE", "MÚSCULO", "FUERZA", "EJERCICIO"]
     
-    # Si el mensaje es una de las letras de la opción, o una pregunta detallada DENTRO del contexto del Reto Poder 8
     if mensaje_limpio in ["A", "B", "C"] or any(k in mensaje_limpio for k in keywords_modulo_5):
         
-        # PROMPT DE DELEGACIÓN A GEMINI PARA RESPUESTA CONTEXTUAL
-        prompt_sub_menu = f"""
-        {INSTRUCCION_SISTEMA}
-        
-        CONTEXTO DE CONVERSACIÓN: El usuario está dentro del *Módulo de Ejercicio Reto Poder 8*. 
-        
-        TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". 
-        
-        * Si el usuario pide *Rutina (A)* o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo).
-        * Si el usuario pide *Conciencia Corporal (B)* o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral.
-        * Si el usuario pide *Comunidad (C)*, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas).
-        
-        Responde al grano, manteniendo el tono profesional y el enfoque Poder 8.
-        """
+        prompt_sub_menu = f"""{INSTRUCCION_SISTEMA} CONTEXTO DE CONVERSACIÓN: El usuario está dentro del *Módulo de Ejercicio Reto Poder 8*. TAREA ESPECÍFICA: El usuario ha escrito: "{mensaje_usuario}". * Si el usuario pide *Rutina (A)* o metas (ej: 'ganar masa muscular'), genera un plan de 7 días con un enfoque Adventista (incluyendo el Reposo). * Si el usuario pide *Conciencia Corporal (B)* o da su *feedback* (ej: 'Fatiga 3'), analiza su estado y sugiere un ajuste simple para la siguiente sesión, reforzando la salud integral. * Si el usuario pide *Comunidad (C)*, dale la respuesta de unirse al grupo de Telegram (o el canal de comunicación que decidas). Responde al grano, manteniendo el tono profesional y el enfoque Poder 8."""
         
         try:
             response = model.generate_content(prompt_sub_menu)
