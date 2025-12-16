@@ -23,7 +23,7 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# --- CLAVES DE SEGURIDAD Y ENLACES (SINTAXIS CORREGIDA) ---
+# --- CLAVES DE SEGURIDAD Y ENLACES ---
 CLIENT_SECRET_KEY = "CF_CLAVE_12025" # <--- CLAVE SECRETA DE LA APP
 WHATSAPP_CONTACTO_PSICOLOGIA = "+573105551234" 
 RADIO_LINK = "https://www.awrcolombia.org/"
@@ -239,7 +239,6 @@ def validar_datos_criticos(perfil_texto):
         return "Faltan los valores de **Glucosa**, **Colesterol** o **Triglicéridos** en la pestaña **EXÁMENES**."
 
     match_phq9 = re.search(r'Puntuación Total: (\d+)/27', perfil_texto)
-    # Si el PHQ-9 tiene una puntuación de 0 (y se envió desde la App, lo consideramos incompleto)
     if match_phq9 and int(match_phq9.group(1)) == 0 and "EDAD BIOLÓGICA" in perfil_texto:
         return "El cuestionario **SER INTERNO (PHQ-9)** en la pestaña de Bienestar no está completo."
     
@@ -439,6 +438,9 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
         
         prompt_perfil = f"""
         {INSTRUCCION_SISTEMA}
+        
+        // --- INSTRUCCIÓN ESPECÍFICA DE TAREA ---
+        // Genera el análisis basado en el Perfil.
         
         CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral generado por la aplicación Cuerpo Fiel. El identificador es: {telefono_extraido}.
         
