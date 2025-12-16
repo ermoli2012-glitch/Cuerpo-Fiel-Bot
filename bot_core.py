@@ -23,7 +23,7 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# --- CLAVES DE SEGURIDAD Y ENLACES ---
+# --- CLAVES DE SEGURIDAD Y ENLACES (SINTAXIS CORREGIDA) ---
 CLIENT_SECRET_KEY = "CF_CLAVE_12025" # <--- CLAVE SECRETA DE LA APP
 WHATSAPP_CONTACTO_PSICOLOGIA = "+573105551234" 
 RADIO_LINK = "https://www.awrcolombia.org/"
@@ -122,9 +122,8 @@ Aquí encuentras soporte integral:
 _Responde I, R, F o el número 0 para volver al Menú Principal._
 """
 
-
 # ==========================================
-# 4. BASE DE DATOS Y FUNCIONES ADICIONALES (Mantenidas)
+# 4. BASE DE DATOS Y FUNCIONES ADICIONALES
 # ==========================================
 def obtener_conexion():
     """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
@@ -227,8 +226,27 @@ def calcular_vitalidad(perfil_texto):
         
     return min(100, max(0, vitality_score))
 
+def validar_datos_criticos(perfil_texto):
+    """Busca N/A o 0.0 en campos críticos del perfil y devuelve el error."""
+    
+    if "IMC: 0.0" in perfil_texto:
+        return "Faltan los datos **Altura** o **Peso** en la pestaña **CUERPO**."
 
-# --- 6. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
+    if "Presión Arterial (S/D): N/A/N/A" in perfil_texto:
+        return "Faltan los valores de **Presión Arterial** en la pestaña **EXÁMENES**."
+
+    if "Glucosa: N/A" in perfil_texto or "Colesterol Total: N/A" in perfil_texto or "Triglicéridos: N/A" in perfil_texto:
+        return "Faltan los valores de **Glucosa**, **Colesterol** o **Triglicéridos** en la pestaña **EXÁMENES**."
+
+    match_phq9 = re.search(r'Puntuación Total: (\d+)/27', perfil_texto)
+    # Si el PHQ-9 tiene una puntuación de 0 (y se envió desde la App, lo consideramos incompleto)
+    if match_phq9 and int(match_phq9.group(1)) == 0 and "EDAD BIOLÓGICA" in perfil_texto:
+        return "El cuestionario **SER INTERNO (PHQ-9)** en la pestaña de Bienestar no está completo."
+    
+    return None # No hay errores críticos
+
+
+# --- 5. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú,
@@ -236,11 +254,10 @@ def consultar_gemini(celular, mensaje_usuario):
     """
     mensaje_limpio = mensaje_usuario.strip().upper()
     
-    # === 1. RESTRICCIÓN DE ACCESO (CLAVE SECRETA DE LA APP) ===
-    # Se añade la lista de comandos (números y letras) para permitir la navegación sin la clave API.
+    # === 1. RESTRICCIÓN DE ACCESO (PRIORIDAD MÁXIMA PARA AHORRO) ===
     comandos_permitidos = ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0", "1", "2", "3", "4", "P", "C", "O", "H", "D", "L", "E", "A", "I", "R", "F"]
     
-    if CLIENT_SECRET_KEY not in mensaje_limpio and mensaje_limpio not in comandos_permitidos:
+    if CLIENT_SECRET_KEY not in mensaje_limpio and not any(cmd in mensaje_limpio for cmd in comandos_permitidos):
         return """
 🚫 *Acceso Restringido - Fuente No Autorizada* 🚫
         
@@ -297,17 +314,32 @@ Tu vida es la prioridad.
     if mensaje_limpio == "H" or mensaje_limpio == "HTA":
         tema = "Hipertensión Arterial (HTA)"
         prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
-        pass # Continúa al try/except para el procesamiento
-        
+        try:
+            response = model.generate_content(prompt_protocolo)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
+            
     if mensaje_limpio == "D" or mensaje_limpio == "DIABETES":
         tema = "Diabetes Mellitus Tipo 2 (DM2)"
         prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
-        pass # Continúa al try/except para el procesamiento
+        try:
+            response = model.generate_content(prompt_protocolo)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
 
     if mensaje_limpio == "L" or mensaje_limpio == "LIPIDOS":
         tema = "Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular"
         prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
-        pass # Continúa al try/except para el procesamiento
+        try:
+            response = model.generate_content(prompt_protocolo)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
 
     # --- ÁREA 2: BIENESTAR (P, E, A) ---
     if mensaje_limpio == "P" or mensaje_limpio == "PSICOLÓGICO":
@@ -355,8 +387,7 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
             f"🔗 *[AWR Colombia]({RADIO_LINK})*"
         )
     if mensaje_limpio == "F" or mensaje_limpio == "FE":
-        # Flujo de Consejería Rápida (Cae a la IA sin menú)
-        pass 
+        pass # Continúa al try/except para el procesamiento (Consejería Rápida)
         
     # --- ÁREA 4: REMEDIOS NATURALES ---
     if mensaje_limpio == "4" or "REMEDIOS NATURALES" in mensaje_limpio:
@@ -378,12 +409,28 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
 """
     
     # =========================================================
-    # 6. LÓGICA DE PROCESAMIENTO DE PERFIL / PLAN / PROTOCOLOS
+    # 5. LÓGICA DE PROCESAMIENTO DE PERFIL / PLAN / PROTOCOLOS
     # =========================================================
 
     # --- PERFIL DE SALUD (Enviado desde la App) ---
     if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio:
         
+        # --- VALIDACIÓN DE DATOS ANTES DE LLAMAR A GEMINI ---
+        error_validacion = validar_datos_criticos(mensaje_usuario)
+        
+        if error_validacion:
+            return f"""
+⚠️ *DATOS INCOMPLETOS - GUÍA ACTIVA* ⚠️
+
+Para poder generar un análisis profesional, necesitamos que completes los siguientes datos críticos:
+
+❌ *ERROR:* {error_validacion}
+👉 *ACCIÓN:* Por favor, regresa a la aplicación **Cuerpo Fiel** y completa la información requerida en la pestaña indicada.
+
+Cuando termines, vuelve a pegar y enviar el perfil aquí.
+"""
+        
+        # Si la validación es exitosa, se procede al análisis con Gemini
         telefono_extraido = extraer_telefono(mensaje_usuario)
         vitality = calcular_vitalidad(mensaje_usuario) 
         
@@ -441,8 +488,8 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
             texto = response.text.replace('**', '*').replace('__', '_')
             return texto
         except Exception as e:
+            print(f"❌ ERROR GEMINI (PLAN NUTRICIONAL): {e}")
             return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
-
 
     # --- LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (OPCIÓN 4) ---
     keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
@@ -458,9 +505,9 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
         except Exception as e:
             return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
 
-    # === 7. LÓGICA NORMAL (Cualquier otra pregunta NO identificada) ===
+    # === 8. LÓGICA NORMAL (Cualquier otra pregunta NO identificada) ===
     try:
-        # Esto captura preguntas complejas, consultas clínicas (1.3), o el sub-menú de ejercicio (2.2)
+        # Esto captura la Opción 1.3 (Consulta Clínica) y otras preguntas.
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
