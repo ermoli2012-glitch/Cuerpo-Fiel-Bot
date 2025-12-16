@@ -256,6 +256,7 @@ def consultar_gemini(celular, mensaje_usuario):
     # === 1. RESTRICCIÓN DE ACCESO (PRIORIDAD MÁXIMA PARA AHORRO) ===
     comandos_permitidos = ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0", "1", "2", "3", "4", "P", "C", "O", "H", "D", "L", "E", "A", "I", "R", "F"]
     
+    # Restricción general para cualquier mensaje que no sea un comando o no contenga la clave
     if CLIENT_SECRET_KEY not in mensaje_limpio and not any(cmd in mensaje_limpio for cmd in comandos_permitidos):
         return """
 🚫 *Acceso Restringido - Fuente No Autorizada* 🚫
@@ -277,144 +278,14 @@ Tu vida es la prioridad.
 🙏 *Promesa Bíblica:* 'Encomienda a Jehová tu camino, y confía en él; y él hará.' (Salmos 37:5). **Busca ayuda profesional sin demora.**
 """
 
-    # === 3. LÓGICA CONDICIONAL DE MENÚ/SALIDA (PRIORIDAD MÁXIMA) ===
-    if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0"]:
-        return MENU_SERVICIOS 
-
     # =========================================================
-    # 4. LÓGICA DE SUB-MENÚS Y ACCIONES ESPECÍFICAS
+    # 3. PROCESAMIENTO DE PERFIL / PLAN (ALTA PRIORIDAD)
     # =========================================================
-
-    # --- NAVEGACIÓN PRINCIPAL ---
-    if mensaje_limpio == "1": return SUB_MENU_SALUD
-    if mensaje_limpio == "2": return SUB_MENU_BIENESTAR
-    if mensaje_limpio == "3": return SUB_MENU_COMUNIDAD
     
-    # --- ÁREA 1: SALUD FÍSICA (P, C, O) ---
-    if mensaje_limpio == "P" or mensaje_limpio == "PROGRESO":
-        return (
-            "📈 *Puntaje de Vitalidad ⚡ (0-100)*\n\n"
-            "Para calcular tu Puntaje de Vitalidad, necesito tu perfil más reciente.\n"
-            "Vuelve a la aplicación **Cuerpo Fiel**, presiona el botón 'Conversar con Genesis' (o 'Enviar Análisis a Genesis') y pega el texto aquí.\n\n"
-            "El puntaje mide tu equilibrio en los 8 Remedios Naturales. ¡Te sorprenderás!"
-        )
-    
-    if mensaje_limpio == "O" or mensaje_limpio == "PROTOCOLOS":
-        return SUB_MENU_PROTOCOLOS
-        
-    if mensaje_limpio == "C" or mensaje_limpio == "CONSULTA":
-        return (
-            "🩺 *Consulta Clínica: Pregunta al instante*\n\n"
-            "¡Listo/a! Escribe tu pregunta sobre cualquier síntoma, condición o necesidad de tratamiento natural. "
-            "Recuerda que mis consejos se basan en la dieta saludable y los 8 Remedios Naturales."
-        )
-
-    # --- ÁREA 1.O: PROTOCOLOS CLÍNICOS (H, D, L) ---
-    if mensaje_limpio == "H" or mensaje_limpio == "HTA":
-        tema = "Hipertensión Arterial (HTA)"
-        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
-        try:
-            response = model.generate_content(prompt_protocolo)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
-            
-    if mensaje_limpio == "D" or mensaje_limpio == "DIABETES":
-        tema = "Diabetes Mellitus Tipo 2 (DM2)"
-        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
-        try:
-            response = model.generate_content(prompt_protocolo)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
-
-    if mensaje_limpio == "L" or mensaje_limpio == "LIPIDOS":
-        tema = "Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular"
-        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
-        try:
-            response = model.generate_content(prompt_protocolo)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
-
-    # --- ÁREA 2: BIENESTAR (P, E, A) ---
-    if mensaje_limpio == "P" or mensaje_limpio == "PSICOLÓGICO":
-        return (
-            "🧠 *Apoyo Psicológico: Paz Mental*\n\n"
-            "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
-            "estrés o ansiedad, comunícate al:\n"
-            f"📲 *Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}*\n\n"
-            "«El reposo mental es una parte esencial de la adoración a Dios.»"
-        )
-        
-    if mensaje_limpio == "E" or mensaje_limpio == "EJERCICIO":
-        return """
-💪 *¡Bienvenido al Reto Poder 8!* 🚀
-
-Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Naturales*.
-
-🔥 *¿Cómo te gustaría empezar?*
-   A. *Mi Rutina:* Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').
-   B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
-   C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!
-"""
-    if mensaje_limpio == "A" or mensaje_limpio == "EVALUACIÓN RÁPIDA":
-        return (
-            "✅ *Evaluación Rápida de Hábitos*\n\n"
-            "Responde a las siguientes 3 preguntas para una guía más precisa:\n"
-            "1. ¿En promedio, cuántos vasos de agua simple consumes al día?\n"
-            "2. ¿Cuántas veces a la semana realizas ejercicio moderado a intenso (mínimo 30 min)?\n"
-            "3. ¿Qué tan satisfecho/a estás con tu descanso nocturno (1-5)?\n\n"
-            "*(Responde con los 3 números: ej. 8, 3, 4)*"
-        )
-
-    # --- ÁREA 3: COMUNIDAD (I, R, F) ---
-    if mensaje_limpio == "I" or mensaje_limpio == "IGLESIAS":
-        return (
-            "📍 *Comunidad de Fe: Encuentra tu Hogar*\n\n"
-            "Para un crecimiento integral, es vital congregarse. Usa el siguiente enlace para buscar "
-            "tu iglesia Adventista o Centro de Vida Sana más cercano:\n"
-            f"🔗 *[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})*"
-        )
-    if mensaje_limpio == "R" or mensaje_limpio == "RADIO":
-        return (
-            "📻 *Voz de Esperanza: Inspiración Diaria*\n\n"
-            "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
-            f"🔗 *[AWR Colombia]({RADIO_LINK})*"
-        )
-    if mensaje_limpio == "F" or mensaje_limpio == "FE":
-        pass # Continúa al try/except para el procesamiento (Consejería Rápida)
-        
-    # --- ÁREA 4: REMEDIOS NATURALES ---
-    if mensaje_limpio == "4" or "REMEDIOS NATURALES" in mensaje_limpio:
-        return """
-✨ *Los 8 Pilares de la Salud* ✨
-
-¡Me encanta tu interés por la *restauración completa*! Estos son los *8 Remedios Naturales* que promueven la sanidad integral:
-
-1.  *🌿 Nutrición*
-2.  *💧 Agua*
-3.  *☀️ Luz Solar*
-4.  *🏃 Ejercicio*
-5.  *🌬️ Aire Puro*
-6.  *😴 Descanso*
-7.  *🧘 Templanza*
-8.  *🙏 Esperanza en Dios*
-
-*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
-"""
-    
-    # =========================================================
-    # 5. LÓGICA DE PROCESAMIENTO DE PERFIL / PLAN / PROTOCOLOS
-    # =========================================================
-
     # --- PERFIL DE SALUD (Enviado desde la App) ---
     if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio:
         
-        # --- VALIDACIÓN DE DATOS ANTES DE LLAMAR A GEMINI ---
+        # --- VALIDACIÓN DE DATOS ANTES DE LLAMAR A GEMINI (GUÍA ACTIVA) ---
         error_validacion = validar_datos_criticos(mensaje_usuario)
         
         if error_validacion:
@@ -493,6 +364,89 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
             print(f"❌ ERROR GEMINI (PLAN NUTRICIONAL): {e}")
             return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
 
+    # =========================================================
+    # 4. PROCESAMIENTO DE COMANDOS DE MENÚ (MENOR PRIORIDAD)
+    # =========================================================
+
+    # --- NAVEGACIÓN PRINCIPAL ---
+    if mensaje_limpio == "1": return SUB_MENU_SALUD
+    if mensaje_limpio == "2": return SUB_MENU_BIENESTAR
+    if mensaje_limpio == "3": return SUB_MENU_COMUNIDAD
+    
+    # --- ÁREA 1: SALUD FÍSICA (P, C, O) ---
+    if mensaje_limpio == "P" or mensaje_limpio == "PROGRESO":
+        return ("📈 *Puntaje de Vitalidad ⚡ (0-100)*\n\n" "Para calcular tu Puntaje de Vitalidad, necesito tu perfil más reciente.\n" "Vuelve a la aplicación **Cuerpo Fiel**, presiona el botón 'Conversar con Genesis' (o 'Enviar Análisis a Genesis') y pega el texto aquí.\n\n" "El puntaje mide tu equilibrio en los 8 Remedios Naturales. ¡Te sorprenderás!")
+    if mensaje_limpio == "O" or mensaje_limpio == "PROTOCOLOS":
+        return SUB_MENU_PROTOCOLOS
+    if mensaje_limpio == "C" or mensaje_limpio == "CONSULTA":
+        return ("🩺 *Consulta Clínica: Pregunta al instante*\n\n" "¡Listo/a! Escribe tu pregunta sobre cualquier síntoma, condición o necesidad de tratamiento natural. " "Recuerda que mis consejos se basan en la dieta saludable y los 8 Remedios Naturales.")
+
+    # --- ÁREA 1.O: PROTOCOLOS CLÍNICOS (H, D, L) ---
+    if mensaje_limpio == "H" or mensaje_limpio == "HTA":
+        tema = "Hipertensión Arterial (HTA)"
+        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
+        try:
+            response = model.generate_content(prompt_protocolo)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
+            
+    if mensaje_limpio == "D" or mensaje_limpio == "DIABETES":
+        tema = "Diabetes Mellitus Tipo 2 (DM2)"
+        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
+        try:
+            response = model.generate_content(prompt_protocolo)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
+
+    if mensaje_limpio == "L" or mensaje_limpio == "LIPIDOS":
+        tema = "Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular"
+        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
+        try:
+            response = model.generate_content(prompt_protocolo)
+            texto = response.text.replace('**', '*').replace('__', '_')
+            return texto
+        except Exception as e:
+            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
+
+    # --- ÁREA 2: BIENESTAR (P, E, A) ---
+    if mensaje_limpio == "P" or mensaje_limpio == "PSICOLÓGICO":
+        return ("🧠 *Apoyo Psicológico: Paz Mental*\n\n" "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar " "estrés o ansiedad, comunícate al:\n" f"📲 *Teléfono: {WHATSAPP_CONTACTO_PSICOLOGIA}*\n\n" "«El reposo mental es una parte esencial de la adoración a Dios.»")
+    if mensaje_limpio == "E" or mensaje_limpio == "EJERCICIO":
+        return ("💪 *¡Bienvenido al Reto Poder 8!* 🚀\n\n" "Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Naturales*.\n\n" "🔥 *¿Cómo te gustaría empezar?*\n   A. *Mi Rutina:* Describe tus metas de *fitness* (ej: 'quiero ganar músculo y tener más energía').\n   B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?\n   C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!")
+    if mensaje_limpio == "A" or mensaje_limpio == "EVALUACIÓN RÁPIDA":
+        return ("✅ *Evaluación Rápida de Hábitos*\n\n" "Responde a las siguientes 3 preguntas para una guía más precisa:\n" "1. ¿En promedio, cuántos vasos de agua simple consumes al día?\n" "2. ¿Cuántas veces a la semana realizas ejercicio moderado a intenso (mínimo 30 min)?\n" "3. ¿Qué tan satisfecho/a estás con tu descanso nocturno (1-5)?\n\n" "*(Responde con los 3 números: ej. 8, 3, 4)*")
+
+    # --- ÁREA 3: COMUNIDAD (I, R, F) ---
+    if mensaje_limpio == "I" or mensaje_limpio == "IGLESIAS":
+        return ("📍 *Comunidad de Fe: Encuentra tu Hogar*\n\n" "Para un crecimiento integral, es vital congregarse. Usa el siguiente enlace para buscar " "tu iglesia Adventista o Centro de Vida Sana más cercano:\n" f"🔗 *[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})*")
+    if mensaje_limpio == "R" or mensaje_limpio == "RADIO":
+        return ("📻 *Voz de Esperanza: Inspiración Diaria*\n\n" "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n" f"🔗 *[AWR Colombia]({RADIO_LINK})*")
+    if mensaje_limpio == "F" or mensaje_limpio == "FE":
+        pass # Continúa al try/except para el procesamiento (Consejería Rápida)
+        
+    # --- ÁREA 4: REMEDIOS NATURALES ---
+    if mensaje_limpio == "4" or "REMEDIOS NATURALES" in mensaje_limpio:
+        return """
+✨ *Los 8 Pilares de la Salud* ✨
+
+¡Me encanta tu interés por la *restauración completa*! Estos son los *8 Remedios Naturales* que promueven la sanidad integral:
+
+1.  *🌿 Nutrición*
+2.  *💧 Agua*
+3.  *☀️ Luz Solar*
+4.  *🏃 Ejercicio*
+5.  *🌬️ Aire Puro*
+6.  *😴 Descanso*
+7.  *🧘 Templanza*
+8.  *🙏 Esperanza en Dios*
+
+*¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
+"""
+    
     # --- LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (OPCIÓN 4) ---
     keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
     if any(k in mensaje_limpio for k in keywords_pilares):
@@ -507,9 +461,9 @@ Cuando termines, vuelve a pegar y enviar el perfil aquí.
         except Exception as e:
             return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
 
-    # === 8. LÓGICA NORMAL (Cualquier otra pregunta NO identificada) ===
+    # === 9. LÓGICA FINAL (PREGUNTA ABIERTA O ERROR) ===
     try:
-        # Esto captura la Opción 1.3 (Consulta Clínica) y otras preguntas.
+        # Cualquier pregunta que no haya caído en los comandos específicos
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
@@ -525,7 +479,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 9. RUTAS WEB Y DE WHATSAPP (Mantenidas)
+# 10. RUTAS WEB Y DE WHATSAPP (Mantenidas)
 # ==========================================
 @app.route('/')
 def home():
