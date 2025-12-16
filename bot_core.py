@@ -23,7 +23,7 @@ try:
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
 
-# --- CLAVES DE SEGURIDAD Y ENLACES (SINTAXIS CORREGIDA) ---
+# --- CLAVES DE SEGURIDAD Y ENLACES ---
 CLIENT_SECRET_KEY = "CF_CLAVE_12025" # <--- CLAVE SECRETA DE LA APP
 WHATSAPP_CONTACTO_PSICOLOGIA = "+573105551234" 
 RADIO_LINK = "https://www.awrcolombia.org/"
@@ -67,35 +67,35 @@ Me enfoco en un solo objetivo: **tu salud integral.**
 ----------------------------------------
 
 * **1️⃣ MI SALUD FÍSICA:** Análisis de Perfil, Exámenes y Protocolos clínicos.
-* **2️⃣ MI PAZ INTERNA:** Soporte para la Mente, Estrés y Módulo de Retos Físicos.
+* **2️⃣ MI PAZ INTERNA:** Soporte para la Mente y Módulo de Retos Físicos.
 * **3️⃣ MI COMUNIDAD:** Encuentra soporte, consejería y mensajes de fe.
 * **4️⃣ REMEDIOS NATURALES:** Profundiza en los 8 Pilares de la Salud.
 * **0️⃣ MENÚ:** *Responde 0 o SALIR para volver aquí.*
 """
 
-# --- SUB-MENÚS ---
+# --- SUB-MENÚS OPTIMIZADOS ---
 SUB_MENU_SALUD = """
 🩺 *Área 1: Mi Salud Física*
 
 ¡Excelente enfoque! ¿Qué necesitas hacer con tu salud hoy?
 
-* **1.1. Progreso:** Ver tu Puntaje de Vitalidad y última Evaluación.
-* **1.2. Protocolos:** Acceder a guías para HTA, Diabetes y Colesterol.
-* **1.3. Consulta Clínica:** Pregúntame sobre un síntoma o un tratamiento natural.
+* **P. PROGRESO:** Ver tu Puntaje de Vitalidad y última Evaluación.
+* **C. CONSULTA:** Pregúntame sobre un síntoma o un tratamiento natural.
+* **O. PROTOCOLOS:** Acceder a guías para HTA, Diabetes y Colesterol.
 
-_Responde 1.1, 1.2 o 1.3_
+_Responde P, C, O o el número 0 para volver al Menú Principal._
 """
 
 SUB_MENU_PROTOCOLOS = """
-🔬 *Área 1.2: Protocolos Clínicos*
+🔬 *Área 1-O: Protocolos Clínicos*
 
 Selecciona el protocolo que necesitas:
 
-* **1.2.6. HIPERTENSIÓN (HTA):** Guía de estilo de vida para Presión Arterial.
-* **1.2.7. DIABETES (DM2):** Protocolo Nutricional para Control de Azúcar.
-* **1.2.8. LÍPIDOS/CORAZÓN:** Guía para Colesterol y Salud Cardiovascular.
+* **H. HTA:** Guía de estilo de vida para Presión Arterial.
+* **D. DIABETES:** Protocolo Nutricional para Control de Azúcar.
+* **L. LÍPIDOS:** Guía para Colesterol y Salud Cardiovascular.
 
-_Responde 1.2.6, 1.2.7 o 1.2.8_
+_Responde H, D, L o el número 0 para volver al Menú Principal._
 """
 
 SUB_MENU_BIENESTAR = """
@@ -103,11 +103,11 @@ SUB_MENU_BIENESTAR = """
 
 Tu bienestar emocional es tan vital como tu cuerpo:
 
-* **2.1. Soporte Psicológico:** Contacto para consejería confidencial.
-* **2.2. Módulo Ejercicio:** Únete al Reto Poder 8 y entrena de forma inteligente.
-* **2.3. Evaluación Rápida:** Responde 3 preguntas para una guía precisa.
+* **P. PSICOLÓGICO:** Contacto para consejería confidencial.
+* **E. EJERCICIO:** Únete al Reto Poder 8 y entrena de forma inteligente.
+* **A. EVALUACIÓN RÁPIDA:** Responde 3 preguntas para una guía precisa.
 
-_Responde 2.1, 2.2 o 2.3_
+_Responde P, E, A o el número 0 para volver al Menú Principal._
 """
 
 SUB_MENU_COMUNIDAD = """
@@ -115,16 +115,16 @@ SUB_MENU_COMUNIDAD = """
 
 Aquí encuentras soporte integral:
 
-* **3.1. Directorio de Iglesias:** Encuentra tu iglesia o centro de vida sana.
-* **3.2. Voz de Esperanza:** Conéctate a la Radio Adventista AWR.
-* **3.3. Consejería Rápida:** Pregunta sobre temas de fe y salud.
+* **I. IGLESIAS:** Directorio de Iglesias y centros de vida sana.
+* **R. RADIO:** Conéctate a la Voz de Esperanza (AWR).
+* **F. FE:** Consejería Rápida sobre temas de fe y salud.
 
-_Responde 3.1, 3.2 o 3.3_
+_Responde I, R, F o el número 0 para volver al Menú Principal._
 """
 
 
 # ==========================================
-# 4. BASE DE DATOS Y FUNCIONES ADICIONALES
+# 4. BASE DE DATOS Y FUNCIONES ADICIONALES (Mantenidas)
 # ==========================================
 def obtener_conexion():
     """Intenta establecer conexión con la base de datos, priorizando DATABASE_URL."""
@@ -228,19 +228,19 @@ def calcular_vitalidad(perfil_texto):
     return min(100, max(0, vitality_score))
 
 
-# --- 5. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
+# --- 6. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
     """
     Gestiona la respuesta del bot con lógica condicional para el menú,
-    incluyendo la restricción de acceso por clave.
+    incluyendo la restricción de acceso por clave y la navegación por letra/comando.
     """
     mensaje_limpio = mensaje_usuario.strip().upper()
     
-    # === 1. RESTRICCIÓN DE ACCESO (PRIORIDAD MÁXIMA PARA AHORRO) ===
-    # Solo permitimos mensajes que contengan la clave o que sean comandos del menú
-    comandos_permitidos = ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0", "1", "2", "3", "4", "1.1", "1.2", "1.3", "1.2.6", "1.2.7", "1.2.8", "2.1", "2.2", "2.3", "3.1", "3.2", "3.3"]
+    # === 1. RESTRICCIÓN DE ACCESO (CLAVE SECRETA DE LA APP) ===
+    # Se añade la lista de comandos (números y letras) para permitir la navegación sin la clave API.
+    comandos_permitidos = ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER", "0", "1", "2", "3", "4", "P", "C", "O", "H", "D", "L", "E", "A", "I", "R", "F"]
     
-    if CLIENT_SECRET_KEY not in mensaje_limpio and not any(cmd in mensaje_limpio for cmd in comandos_permitidos):
+    if CLIENT_SECRET_KEY not in mensaje_limpio and mensaje_limpio not in comandos_permitidos:
         return """
 🚫 *Acceso Restringido - Fuente No Autorizada* 🚫
         
@@ -269,11 +269,13 @@ Tu vida es la prioridad.
     # 4. LÓGICA DE SUB-MENÚS Y ACCIONES ESPECÍFICAS
     # =========================================================
 
-    # --- ÁREA 1: SALUD FÍSICA ---
-    if mensaje_limpio == "1":
-        return SUB_MENU_SALUD
+    # --- NAVEGACIÓN PRINCIPAL ---
+    if mensaje_limpio == "1": return SUB_MENU_SALUD
+    if mensaje_limpio == "2": return SUB_MENU_BIENESTAR
+    if mensaje_limpio == "3": return SUB_MENU_COMUNIDAD
     
-    if mensaje_limpio == "1.1" or "PROGRESO" in mensaje_limpio:
+    # --- ÁREA 1: SALUD FÍSICA (P, C, O) ---
+    if mensaje_limpio == "P" or mensaje_limpio == "PROGRESO":
         return (
             "📈 *Puntaje de Vitalidad ⚡ (0-100)*\n\n"
             "Para calcular tu Puntaje de Vitalidad, necesito tu perfil más reciente.\n"
@@ -281,21 +283,34 @@ Tu vida es la prioridad.
             "El puntaje mide tu equilibrio en los 8 Remedios Naturales. ¡Te sorprenderás!"
         )
     
-    if mensaje_limpio == "1.2":
+    if mensaje_limpio == "O" or mensaje_limpio == "PROTOCOLOS":
         return SUB_MENU_PROTOCOLOS
         
-    if mensaje_limpio == "1.3" or "CONSULTA CLÍNICA" in mensaje_limpio:
+    if mensaje_limpio == "C" or mensaje_limpio == "CONSULTA":
         return (
             "🩺 *Consulta Clínica: Pregunta al instante*\n\n"
             "¡Listo/a! Escribe tu pregunta sobre cualquier síntoma, condición o necesidad de tratamiento natural. "
             "Recuerda que mis consejos se basan en la dieta saludable y los 8 Remedios Naturales."
         )
 
-    # --- ÁREA 2: BIENESTAR ---
-    if mensaje_limpio == "2":
-        return SUB_MENU_BIENESTAR
+    # --- ÁREA 1.O: PROTOCOLOS CLÍNICOS (H, D, L) ---
+    if mensaje_limpio == "H" or mensaje_limpio == "HTA":
+        tema = "Hipertensión Arterial (HTA)"
+        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
+        pass # Continúa al try/except para el procesamiento
         
-    if mensaje_limpio == "2.1" or "SOPORTE PSICOLÓGICO" in mensaje_limpio:
+    if mensaje_limpio == "D" or mensaje_limpio == "DIABETES":
+        tema = "Diabetes Mellitus Tipo 2 (DM2)"
+        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
+        pass # Continúa al try/except para el procesamiento
+
+    if mensaje_limpio == "L" or mensaje_limpio == "LIPIDOS":
+        tema = "Dislipidemia (Colesterol/Triglicéridos) y la Salud Cardiovascular"
+        prompt_protocolo = f"{INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional."
+        pass # Continúa al try/except para el procesamiento
+
+    # --- ÁREA 2: BIENESTAR (P, E, A) ---
+    if mensaje_limpio == "P" or mensaje_limpio == "PSICOLÓGICO":
         return (
             "🧠 *Apoyo Psicológico: Paz Mental*\n\n"
             "Tu salud emocional es vital. Para iniciar una sesión de apoyo confidencial para manejar "
@@ -304,7 +319,7 @@ Tu vida es la prioridad.
             "«El reposo mental es una parte esencial de la adoración a Dios.»"
         )
         
-    if mensaje_limpio == "2.2" or "MÓDULO EJERCICIO" in mensaje_limpio:
+    if mensaje_limpio == "E" or mensaje_limpio == "EJERCICIO":
         return """
 💪 *¡Bienvenido al Reto Poder 8!* 🚀
 
@@ -315,7 +330,7 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
    B. *Conciencia Corporal:* ¿Cómo evaluas tu fatiga post-entreno de hoy (1-5)?
    C. *Comunidad:* ¡Quiero unirme al desafío de puntos de vitalidad!
 """
-    if mensaje_limpio == "2.3" or "EVALUACIÓN RÁPIDA" in mensaje_limpio:
+    if mensaje_limpio == "A" or mensaje_limpio == "EVALUACIÓN RÁPIDA":
         return (
             "✅ *Evaluación Rápida de Hábitos*\n\n"
             "Responde a las siguientes 3 preguntas para una guía más precisa:\n"
@@ -324,26 +339,23 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
             "3. ¿Qué tan satisfecho/a estás con tu descanso nocturno (1-5)?\n\n"
             "*(Responde con los 3 números: ej. 8, 3, 4)*"
         )
-        
-    # --- ÁREA 3: COMUNIDAD ---
-    if mensaje_limpio == "3":
-        return SUB_MENU_COMUNIDAD
-        
-    if mensaje_limpio == "3.1" or "DIRECTORIO DE IGLESIAS" in mensaje_limpio:
+
+    # --- ÁREA 3: COMUNIDAD (I, R, F) ---
+    if mensaje_limpio == "I" or mensaje_limpio == "IGLESIAS":
         return (
             "📍 *Comunidad de Fe: Encuentra tu Hogar*\n\n"
             "Para un crecimiento integral, es vital congregarse. Usa el siguiente enlace para buscar "
             "tu iglesia Adventista o Centro de Vida Sana más cercano:\n"
             f"🔗 *[Directorio de Iglesias]({DIRECTORIO_IGLESIAS_LINK})*"
         )
-    if mensaje_limpio == "3.2" or "VOZ DE ESPERANZA" in mensaje_limpio:
+    if mensaje_limpio == "R" or mensaje_limpio == "RADIO":
         return (
             "📻 *Voz de Esperanza: Inspiración Diaria*\n\n"
             "Conéctate a mensajes que transforman tu vida y fortalecen tu fe. Escucha nuestra programación:\n"
             f"🔗 *[AWR Colombia]({RADIO_LINK})*"
         )
-    if mensaje_limpio == "3.3" or "CONSEJERÍA RÁPIDA" in mensaje_limpio:
-        # Pasa directamente a la IA con contexto de consejería
+    if mensaje_limpio == "F" or mensaje_limpio == "FE":
+        # Flujo de Consejería Rápida (Cae a la IA sin menú)
         pass 
         
     # --- ÁREA 4: REMEDIOS NATURALES ---
@@ -366,7 +378,7 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
 """
     
     # =========================================================
-    # 5. LÓGICA DE PROCESAMIENTO DE PERFIL / PLAN / PROTOCOLOS
+    # 6. LÓGICA DE PROCESAMIENTO DE PERFIL / PLAN / PROTOCOLOS
     # =========================================================
 
     # --- PERFIL DE SALUD (Enviado desde la App) ---
@@ -376,19 +388,17 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
         vitality = calcular_vitalidad(mensaje_usuario) 
         
         if not telefono_extraido or "NO PROPORCIONADO" in mensaje_limpio:
-            return """
-⚠️ *ATENCIÓN - PERFIL INCOMPLETO* ⚠️
-Para que el doctor pueda buscar tu perfil y darte una recomendación en el evento, es crucial el **número de teléfono**.
-Vuelve a la App y envía el perfil completo. 🙏
-"""
+            return "⚠️ *ATENCIÓN - PERFIL INCOMPLETO* ⚠️\nPara que el doctor pueda buscar tu perfil y darte una recomendación en el evento, es crucial el **número de teléfono**. Vuelve a la App y envía el perfil completo. 🙏"
         
         prompt_perfil = f"""
         {INSTRUCCION_SISTEMA}
-        CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral. Identificador: {telefono_extraido}.
+        
+        CONTEXTO DE LA TAREA: El usuario ha pegado su perfil de salud integral generado por la aplicación Cuerpo Fiel. El identificador es: {telefono_extraido}.
+        
         TAREA CRÍTICA:
         1. NO repitas el texto del perfil.
         2. Genera inmediatamente el **DIAGNÓSTICO PRESUNTIVO**.
-        3. Formula una **RECETA DE ACCIÓN** priorizando el Remedio Natural más débil.
+        3. Formula una **RECETA DE ACCIÓN** que priorice el Remedio Natural más débil.
         4. Comienza la respuesta reconociendo y comentando el PUNTAJE DE VITALIDAD.
         5. Cierra con la pregunta interactiva y la referencia médica estándar.
         
@@ -406,14 +416,24 @@ Vuelve a la App y envía el perfil completo. 🙏
         
     # --- PLAN NUTRICIONAL (Protegido por Código) ---
     if "PLAN NUTRICIONAL SOLICITADO" in mensaje_limpio:
-        # Lógica de verificación del código (se asume que la App lo inyecta)
-        if CODIGO_NUTRICIONAL not in mensaje_limpio:
+        
+        match_code = re.search(r'(IASD2025|IASD\s*2025)', mensaje_limpio) 
+        
+        if not match_code:
             return "❌ *ACCESO DENEGADO:* Por favor, solicita el código *IASD2025* al Director de Salud."
         
         prompt_nutricional = f"""
         {INSTRUCCION_SISTEMA}
-        CONTEXTO: El usuario solicita un Plan Nutricional de 7 días.
-        TAREA CRÍTICA: Genera un Plan Nutricional Vegano/Adventista de 7 días adaptado al perfil de salud que se adjunta. Debe ser estricto en la eliminación de carnes, lácteos, azúcar refinado y cafeína. Provee una lista de compras básica.
+        
+        CONTEXTO: El usuario está solicitando un Plan Nutricional de 7 días. El perfil de salud completo está adjunto al mensaje.
+        
+        TAREA CRÍTICA:
+        1. Genera un Plan Nutricional Vegano/Adventista de 7 días adaptado al perfil de salud que se adjunta. 
+        2. El plan debe ser estricto en la eliminación de carnes, lácteos, azúcar refinado y cafeína.
+        3. Debe ser fácil de seguir y resaltar alimentos que ayuden a la condición más débil del usuario.
+        4. Provee una lista de compras básica.
+        5. Cierra con un versículo y la referencia médica.
+        
         PERFIL DE SALUD: {mensaje_usuario}
         """
         try:
@@ -423,19 +443,6 @@ Vuelve a la App y envía el perfil completo. 🙏
         except Exception as e:
             return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
 
-    # --- PROTOCOLOS CLÍNICOS (1.2.X) ---
-    if mensaje_limpio in ["1.2.6", "1.2.7", "1.2.8"]:
-        opciones = {"1.2.6": "Hipertensión Arterial (HTA)", "1.2.7": "Diabetes Mellitus Tipo 2 (DM2)", "1.2.8": "Lípidos/Salud Cardiovascular"}
-        tema = opciones[mensaje_limpio]
-        prompt_protocolo = f"""
-        {INSTRUCCION_SISTEMA} TAREA ESPECÍFICA: Eres Médico Internista y Nutricionista. Genera una *RECETA* detallada para el manejo de {tema} enfocada en el estilo de vida (8 Remedios Naturales). Responde al grano, manteniendo el tono profesional.
-        """
-        try:
-            response = model.generate_content(prompt_protocolo)
-            texto = response.text.replace('**', '*').replace('__', '_')
-            return texto
-        except Exception as e:
-            return f"⚠️ Lo siento, no pude generar el Protocolo para {tema} ahora."
 
     # --- LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (OPCIÓN 4) ---
     keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
@@ -451,9 +458,9 @@ Vuelve a la App y envía el perfil completo. 🙏
         except Exception as e:
             return "⚠️ Lo siento, tengo problemas para generar el consejo del pilar. Vuelve a intentarlo o pregunta algo general."
 
-    # === 6. LÓGICA NORMAL (Cualquier otra pregunta NO identificada) ===
+    # === 7. LÓGICA NORMAL (Cualquier otra pregunta NO identificada) ===
     try:
-        # Esto captura la Opción 1.3 (Consulta Clínica) y otras preguntas.
+        # Esto captura preguntas complejas, consultas clínicas (1.3), o el sub-menú de ejercicio (2.2)
         prompt_full = f"{INSTRUCCION_SISTEMA}\n\nPregunta del paciente: {mensaje_usuario}"
         
         response = model.generate_content(prompt_full)
@@ -461,6 +468,7 @@ Vuelve a la App y envía el perfil completo. 🙏
         texto = response.text.replace('**', '*').replace('__', '_')
         return texto
     except Exception as e:
+        print(f"❌ ERROR CRÍTICO DE GOOGLE: {e}")
         return """
 ⚠️ Lo siento, Genesis está en una consulta crítica.
 Intenta de nuevo en un momento."
@@ -468,7 +476,7 @@ Intenta de nuevo en un momento."
 
 
 # ==========================================
-# 7. RUTAS WEB Y DE WHATSAPP (Mantenidas)
+# 9. RUTAS WEB Y DE WHATSAPP (Mantenidas)
 # ==========================================
 @app.route('/')
 def home():
