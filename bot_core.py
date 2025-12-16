@@ -3,6 +3,9 @@ import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
 from twilio.twiml.messaging_response import MessagingResponse
+import re
+# Importamos la librería para calcular el puntaje
+from math import floor, ceil
 
 app = Flask(__name__)
 
@@ -42,7 +45,7 @@ REGLAS DE PROCESAMIENTO (INTERNAS - NUNCA VISIBLES AL USUARIO):
 3. ESTÁNDAR TERAPÉUTICO: La prescripción se basa en el estilo de vida más saludable basado en plantas y los **8 Remedios Naturales**.
 
 REGLAS DE RESPUESTA VISIBLE AL USUARIO (PARA EL MEJOR UX):
-1. **EVITAR AUTO-REFERENCIA (CLAVE UX):** Nunca uses frases como "Soy Genesis, el especialista...", "Como médico, recomiendo...", o "Mi rol es...". **Tu autoridad se demuestra con la calidad de tu consejo; no con títulos.**
+1. **EVITAR AUTO-REFERENCIA (CLAVE UX):** Nunca uses frases como "Soy Genesis, el especialista...", "Como médico, recomiendo...", o "Mi rol es...". Tu autoridad se demuestra con la calidad de tu consejo; no con títulos.
 2. **RESPUESTA DIRECTA Y NATURAL (TERAPÉUTICA):** Ve directo al **diagnóstico presuntivo** y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante. La prescripción debe ser una RECETA que detalle los pasos de acción exitosos.
 3. Contexto de Fe: Toda prescripción debe estar alineada con los principios bíblicos de salud.
 4. Versículo Bíblico: La cita bíblica debe ser ALTAMENTE RELEVANTE al tema consultado y debe ir al final.
@@ -74,6 +77,7 @@ MENU_SERVICIOS = f"""
 * **6️⃣ HIPERTENSIÓN (HTA):** Protocolo de Estilo de Vida para Presión Arterial.
 * **7️⃣ DIABETES (DM2):** Protocolo Nutricional para Control de Azúcar.
 * **8️⃣ LÍPIDOS/CORAZÓN:** Protocolo para Colesterol y Salud Cardiovascular.
+* **9️⃣ PROGRESO:** Muestra tu Puntaje de Vitalidad y compáralo con tu última evaluación.
 
 *Responde solo con el número (ej: 0, 1, 6 o SALIR) para volver aquí.*
 """
@@ -110,7 +114,8 @@ def guardar_historial(celular, mensaje, respuesta):
             if conn:
                 conn.close()
 
-# --- FUNCIONES ADICIONALES ---
+# --- FUNCIONES ADICIONALES Y DE CÁLCULO DE VITALIDAD ---
+
 def extraer_telefono(mensaje):
     """Busca y extrae el número de teléfono del perfil pegado por la App."""
     try:
@@ -124,13 +129,90 @@ def extraer_telefono(mensaje):
         line = mensaje[start_index:end_of_line].strip()
         
         # Extrae solo los dígitos
-        import re
         match = re.search(r'(\d{8,15})', line) 
         if match:
             return match.group(1)
         return None
     except:
         return None
+
+def calcular_vitalidad(perfil_texto):
+    """Calcula un Puntaje de Vitalidad del 0 al 100 basado en el perfil."""
+    
+    # Inicialización
+    vitality_score = 0
+    age = 0
+    bio_age = 0
+    imc = 0.0
+    phq9_score = 0
+    
+    # --- 1. Extracción de Datos (USANDO REGEX) ---
+    
+    match_age = re.search(r'Edad Real: (\d+)', perfil_texto)
+    if match_age:
+        age = int(match_age.group(1))
+    
+    match_bio = re.search(r'Edad Biológica Estimada: (\d+)', perfil_texto)
+    if match_bio:
+        bio_age = int(match_bio.group(1))
+
+    match_imc = re.search(r'IMC: ([\d.]+)', perfil_texto)
+    if match_imc:
+        imc = float(match_imc.group(1))
+
+    match_phq9 = re.search(r'Puntuación Total: (\d+)/27', perfil_texto)
+    if match_phq9:
+        phq9_score = int(match_phq9.group(1))
+
+    # --- 2. CÁLCULO DE PUNTOS ---
+    
+    # I. EDAD BIOLÓGICA (Máx 30 pts)
+    age_diff = age - bio_age
+    if age_diff >= 3:
+        vitality_score += 30 # Bio 3 años menor (Excelente)
+    elif age_diff > 0:
+        vitality_score += 20 # Bio menor (Bueno)
+    elif age_diff == 0:
+        vitality_score += 15
+    elif age_diff <= -5:
+        vitality_score += 5  # Bio 5 años o más mayor (Riesgo)
+    else:
+        vitality_score += 10 # Bio ligeramente mayor
+        
+    # II. BIENESTAR MENTAL (Máx 30 pts)
+    # PHQ9: 0-4 (Mínima), 5-9 (Leve), 10-14 (Moderada), 15-27 (Severa)
+    if phq9_score <= 4:
+        vitality_score += 30
+    elif phq9_score <= 9:
+        vitality_score += 20
+    elif phq9_score <= 14:
+        vitality_score += 10
+    else:
+        vitality_score += 5
+        
+    # III. RIESGOS CLÍNICOS (Máx 20 pts)
+    # Buscamos indicadores de riesgo (PA, Glucosa, Colesterol ALTO o BAJO)
+    risk_points = 20 # Empieza con 20 puntos
+    # Penalización fuerte por riesgo clínico (Hipertensión, Hipoglucemia, Riesgo Elevado)
+    if "ALTO" in perfil_texto.upper() or "HPT" in perfil_texto.upper() or "HIPOGLUCEMIA" in perfil_texto.upper() or "BAJA" in perfil_texto.upper():
+        risk_points -= 10 
+    # Penalización media
+    if "LÍMITE" in perfil_texto.upper() or "NORMAL-ALTA" in perfil_texto.upper() or "PRE-DIABETES" in perfil_texto.upper():
+        risk_points -= 5 
+        
+    vitality_score += risk_points
+    
+    # IV. FITNESS / IMC (Máx 20 pts)
+    if imc >= 18.5 and imc <= 24.9:
+        vitality_score += 20 # Peso Saludable
+    elif (imc >= 25.0 and imc <= 29.9) or imc < 18.5:
+        vitality_score += 10 # Sobrepeso o Bajo peso
+    else:
+        vitality_score += 5 # Obesidad
+        
+    # Asegurar que el puntaje final esté entre 0 y 100
+    return min(100, max(0, vitality_score))
+
 
 # --- 4. CEREBRO DE LA APLICACIÓN (FLUJO CONDICIONAL COMPLETO) ---
 def consultar_gemini(celular, mensaje_usuario):
@@ -155,15 +237,14 @@ Tu vida es la prioridad.
     if mensaje_limpio in ["HOLA", "HOLA.", "HOLA!", "MENU", "INICIO", "COMIENZO", "EMPEZAR", "SALIR", "VOLVER"]:
         return MENU_SERVICIOS 
 
-    # === 3. LÓGICA DE ANÁLISIS DE PERFIL INTEGRAL (NUEVA PRIORIDAD) ===
+    # === 3. LÓGICA DE ANÁLISIS DE PERFIL INTEGRAL (INCLUYE PUNTAJE DE VITALIDAD) ===
     
-    # --- VALIDACIÓN DEL CAMPO TELÉFONO (CRUCIAL PARA EL EVENTO) ---
     if "PERFIL DE SALUD INTEGRAL" in mensaje_limpio:
         
         telefono_extraido = extraer_telefono(mensaje_usuario)
+        vitality = calcular_vitalidad(mensaje_usuario) # Calculamos el puntaje aquí
         
         if not telefono_extraido or "NO PROPORCIONADO" in mensaje_limpio:
-            # Si el usuario no proporcionó el teléfono en la App
             return """
 ⚠️ *ATENCIÓN - PERFIL INCOMPLETO* ⚠️
 
@@ -172,7 +253,6 @@ Para que el doctor pueda buscar tu perfil y darte una recomendación en el event
 Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de Exámenes y envía el perfil completo. 🙏
 """
         
-        # Si el perfil está listo y tiene teléfono, procesamos con Gemini
         prompt_perfil = f"""
         {INSTRUCCION_SISTEMA}
         
@@ -182,9 +262,11 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
         1. **NO** repitas el menú de servicios.
         2. **NO** repitas el texto del perfil.
         3. Genera inmediatamente el **DIAGNÓSTICO PRESUNTIVO** (basado en IMC, PA y PHQ-9).
-        4. Formula una **RECETA DE ACCIÓN** que priorice y explique **UN SOLO REMEDIO NATURAL** que aborde el problema más débil (ej., si el PHQ-9 es Severo, prioriza Esperanza en Dios o Descanso).
-        5. **Comienza la respuesta de forma natural (Ej: "Gracias por enviar tu perfil. He analizado sus resultados clave:...")**
+        4. Formula una **RECETA DE ACCIÓN** que priorice y explique **UN SOLO REMEDIO NATURAL** que aborde el problema más débil.
+        5. **Comienza la respuesta reconociendo y comentando el PUNTAJE DE VITALIDAD.** (Ej: "Gracias por enviar tu perfil. Tienes un Puntaje de Vitalidad de 78/100, lo cual es excelente! Pero veamos cómo mejorar ese punto débil...")
         6. Cierra con la pregunta interactiva y la referencia médica estándar.
+        
+        PUNTAJE DE VITALIDAD GENERADO: {vitality}/100.
         
         PERFIL INTEGRAL DEL PACIENTE:
         ---
@@ -194,7 +276,6 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
         
         try:
             response = model.generate_content(prompt_perfil)
-            # Limpiamos el texto de Gemini
             texto = response.text.replace('**', '*').replace('__', '_')
             return texto
         except Exception as e:
@@ -203,17 +284,13 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
         
     # === 3.1. LÓGICA DE PLAN NUTRICIONAL (PROTECCIÓN DE CÓDIGO) ===
     
-    # El usuario debe enviar el comando exacto o el código IASD2025
     if "PLAN NUTRICIONAL SOLICITADO" in mensaje_limpio:
         
-        # Extrae el código de acceso del mensaje
-        import re
         match_code = re.search(r'(IASD2025|IASD\s*2025)', mensaje_limpio) 
         
         if not match_code:
             return "❌ *ACCESO DENEGADO:* Por favor, solicita el código *IASD2025* al Director de Salud."
         
-        # Si el código es correcto, generamos el plan
         prompt_nutricional = f"""
         {INSTRUCCION_SISTEMA}
         
@@ -222,7 +299,7 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
         TAREA CRÍTICA:
         1. Genera un Plan Nutricional Vegano/Adventista de 7 días adaptado al perfil de salud que se adjunta. 
         2. El plan debe ser estricto en la eliminación de carnes, lácteos, azúcar refinado y cafeína.
-        3. Debe ser fácil de seguir y resaltar alimentos que ayuden a la condición más débil del usuario (ej: más fibra para colesterol alto).
+        3. Debe ser fácil de seguir y resaltar alimentos que ayuden a la condición más débil del usuario.
         4. Provee una lista de compras básica.
         5. Cierra con un versículo y la referencia médica.
         
@@ -240,16 +317,14 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
             return "⚠️ Lo siento, no pude generar el Plan Nutricional. Revisa que hayas pegado el Perfil de Salud completo."
 
 
-    # === 4. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS (SOLUCIÓN AL BUCLÉ DE "SÍ") ===
+    # === 4. LÓGICA DE PROFUNDIZACIÓN: SÍ/NO Y LISTA DE REMEDIOS ===
 
     keywords_mas_info = ["SABER MAS", "DIME MAS", "OTROS 7", "REMEDIOS NATURALES", "8 PILARES", "SI"] 
     keywords_no_info = ["NO", "NO GRACIAS", "YA NO", "BASTA"] 
     
-    # 4.1 Respuesta a "NO"
     if any(k in mensaje_limpio for k in keywords_no_info):
         return "¡Entendido! Siempre estoy aquí para cuando me necesites. No olvides que la salud es un viaje. 👋"
 
-    # 4.2 Respuesta a "SÍ" / "SABER MÁS" (Muestra la lista)
     if any(k in mensaje_limpio for k in keywords_mas_info):
         return """
 ✨ *Los 8 Pilares de la Salud* ✨
@@ -268,7 +343,7 @@ Por favor, vuelve a la App de Cuerpo Fiel, ingresa tu número en la sección de 
 *¿Sobre cuál de estos 8 te gustaría recibir un consejo práctico y bíblico? Responde con el nombre del pilar.*
 """
         
-    # === 5. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES (RESPUESTA AL PILAR ESPECÍFICO) ===
+    # === 5. LÓGICA DE DETALLE DE LOS 8 REMEDIOS NATURALES ===
 
     keywords_pilares = ["NUTRICIÓN", "AGUA", "LUZ SOLAR", "EJERCICIO", "AIRE PURO", "DESCANSO", "TEMPLANZA", "ESPERANZA EN DIOS"]
     
@@ -391,6 +466,15 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
         except Exception as e:
             return "⚠️ Lo siento, no pude generar el Protocolo Cardiovascular ahora."
 
+    # 9. LÓGICA DE PROGRESO (PUNTAJE DE VITALIDAD)
+    if mensaje_limpio == "9" or "PROGRESO" in mensaje_limpio:
+        return (
+            "📈 *Puntaje de Vitalidad ⚡ (0-100)*\n\n"
+            "Para calcular tu Puntaje de Vitalidad, necesito tu perfil más reciente.\n"
+            "Vuelve a la aplicación **Cuerpo Fiel**, presiona el botón 'Preguntar a Genesis' y pega el texto aquí.\n\n"
+            "El puntaje mide tu equilibrio en los 8 Remedios Naturales. ¡Te sorprenderás!"
+        )
+
 
     # === 7. LÓGICA DE SUB-MENÚ DEL MÓDULO 5 (RESPUESTAS A B Y C) ===
     
@@ -431,6 +515,8 @@ Intenta de nuevo en un momento."
 # ==========================================
 @app.route('/')
 def home():
+    # Nota: Aquí se está renderizando index.html, que es la vista de la App Android.
+    # El usuario final de la aplicación Android no ve esta ruta directamente.
     return render_template('index.html')
 
 @app.route('/chat', methods=['POST'])
@@ -446,6 +532,7 @@ def chat():
 
     respuesta = consultar_gemini(celular, mensaje_in)
     
+    # En un entorno real, solo guardarías si la consulta fue exitosa (código 200 de Gemini)
     guardar_historial(celular, mensaje_in, respuesta)
 
     if 'whatsapp' in celular_raw.lower():
