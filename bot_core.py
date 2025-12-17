@@ -9,35 +9,33 @@ app = Flask(__name__)
 # --- CONFIGURACIÓN DE IA ---
 API_KEY = os.environ.get("GEMINI_API_KEY")
 genai.configure(api_key=API_KEY)
-# Usamos gemini-1.5-flash: Es el motor que SÍ puede ver imágenes
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 CLIENT_SECRET_KEY = "CF_CLAVE_12025"
 
-# --- INSTRUCCIÓN MAESTRA (MÉDICA + VISUAL) ---
-INSTRUCCION_MAESTRA = """
-ROL: Eres Genesis, Médico Internista y Nutricionista de la IASD Redención. 
-ESTILO: Humano, empático y profesional. No digas que eres una IA.
+# --- TU INSTRUCCIÓN MÉDICA ORIGINAL INTEGRADA ---
+INSTRUCCION_SISTEMA = """
+ROL: Eres Genesis, Médico Especialista en Medicina Interna y Nutricionista de la IASD Redención.
+TU ESTILO: 100% HUMANO, empático y profesional. No menciones que eres una IA.
 
-REGLAS DE ORO:
-1. TIENES VISIÓN: Si recibes una foto, analízala con autoridad. Prohibido decir "no puedo ver".
-2. MÉTODO: Usa los 8 Remedios Naturales.
-3. NO AUTO-REFERENCIA: Tu conocimiento demuestra quién eres.
+REGLAS CRÍTICAS:
+1. TIENES VISIÓN: Si recibes una imagen, analízala con autoridad médica. Prohibido decir "no puedo ver".
+2. NO AUTO-REFERENCIA: Tu autoridad se demuestra con la calidad de tu consejo médico.
+3. ESTÁNDAR: Te basas en los 8 Remedios Naturales.
 
 ESCENARIOS:
 A. FOTO: Identifica alimentos, da Puntaje de Vitalidad (1-10) y explica el efecto biológico.
-B. PERFIL: Analiza IMC, Edad Bio y Exámenes. Da diagnóstico presuntivo y receta.
+B. PERFIL: Analiza IMC, Edad Bio y Exámenes. Da diagnóstico presuntivo y receta de acción.
 
-CIERRE: Versículo bíblico relevante, pregunta (SI/NO) y descargo médico.
+CIERRE: Versículo bíblico relevante, pregunta interactiva (SI/NO) y descargo médico.
 """
 
 @app.route('/')
 def home():
-    # Esta ruta elimina el error de "estado incompatible"
     return render_template_string("""
-        <html><body style="font-family:sans-serif; text-align:center; padding:50px; background:#f0fdf4;">
-        <h1 style="color:#065f46;">🧬 Génesis IA Bot - Activo</h1>
-        <p style="color:#064e3b;">El motor multimodal integral está funcionando correctamente.</p>
+        <html><body style="font-family:sans-serif; text-align:center; padding:50px; background-color:#f0fdf4;">
+            <h1 style="color:#065f46;">🧬 Génesis IA Bot - Activo</h1>
+            <p style="color:#064e3b;">El motor multimodal integral está funcionando correctamente.</p>
         </body></html>
     """)
 
@@ -53,19 +51,18 @@ def chat():
         respuesta_twilio.message("⚠️ Acceso restringido. Usa la App oficial Cuerpo Fiel.")
         return str(respuesta_twilio)
 
-    # Menú Tradicional
+    # Menú
     if mensaje_upper in ["HOLA", "MENU", "0"]:
         menu = ("✨ *¡HOLA! SOY GENESIS* ✨\n\n1️⃣ *SALUD FÍSICA:* Perfil.\n2️⃣ *PAZ INTERNA:* Bienestar.\n3️⃣ *ESCÁNER:* Analizar plato (Envía foto).")
         respuesta_twilio.message(menu)
         return str(respuesta_twilio)
 
-    content_payload = [INSTRUCCION_MAESTRA, mensaje_usuario]
+    content_payload = [INSTRUCCION_SISTEMA, mensaje_usuario]
 
-    # --- PROCESO DE VISIÓN REAL ---
+    # PROCESO DE VISIÓN REAL
     if num_media > 0:
         try:
             image_url = request.values.get('MediaUrl0')
-            # Descargamos la imagen para que Gemini la vea realmente
             img_data = requests.get(image_url).content
             content_payload.append({"mime_type": "image/jpeg", "data": img_data})
         except Exception as e:
