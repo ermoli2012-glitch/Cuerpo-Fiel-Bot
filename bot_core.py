@@ -53,25 +53,36 @@ EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "
 # --- MENÚ DE SERVICIOS (Texto para la activación con "hola" o "menu") ---
 MENU_SERVICIOS = f"""
 ⭐ *¡HOLA! SOY GENESIS* ⭐
-*Tu guía saludable del Distrito Redención.*
+*Tu guía saludable del Distrito Redención Barranquilla.*
 
 🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
 
 ----------------------------------------
 * Selecciona una opción para empezar:*
 ----------------------------------------
+# Nueva estructura de menú más clara y profesional
+MENU_SERVICIOS = """
+✨ *CENTRO DE BIENESTAR GÉNESIS* ✨
+*Tu camino a la restauración integral*
 
-* **0️⃣ EVALUACIÓN:** ¡Descubre tu punto de partida! (Preguntas rápidas sobre tus 8 Remedios).
-* **1️⃣ CONSULTA CLÍNICA:** Pregúntame sobre cualquier síntoma o tratamiento natural.
-* **2️⃣ APOYO PSICOLÓGICO:** ¿Necesitas ayuda con estrés, ansiedad o depresión?
-* **3️⃣ COMUNIDAD DE FE:** Encuentra tu iglesia o centro de vida sana.
-* **4️⃣ VOZ DE ESPERANZA:** Conéctate a la Radio Adventista AWR.
-* **5️⃣ MÓDULO EJERCICIO:** ¡Únete al *Reto Poder 8* y entrena de forma inteligente!
-* **6️⃣ HIPERTENSIÓN (HTA):** Protocolo de Estilo de Vida para Presión Arterial.
-* **7️⃣ DIABETES (DM2):** Protocolo Nutricional para Control de Azúcar.
-* **8️⃣ LÍPIDOS/CORAZÓN:** Protocolo para Colesterol y Salud Cardiovascular.
+Selecciona una de nuestras áreas especializadas:
 
-*Responde solo con el número (ej: 0, 1, 6 o SALIR) para volver aquí.*
+🏥 **ÁREA CLÍNICA**
+1️⃣ *Consulta:* Síntomas y tratamientos naturales.
+6️⃣ *HTA:* Protocolo de Presión Arterial.
+7️⃣ *Diabetes:* Control de azúcar.
+8️⃣ *Corazón:* Salud Cardiovascular.
+
+🌱 **ESTILO DE VIDA (8 REMEDIOS)**
+0️⃣ *Evaluación:* Test rápido de vitalidad.
+5️⃣ *Reto Poder 8:* Entrenamiento inteligente.
+
+🙏 **APOYO Y COMUNIDAD**
+2️⃣ *Psicología:* Estrés y Ansiedad.
+3️⃣ *Iglesias:* Encuentra tu comunidad.
+4️⃣ *Radio:* Inspiración 24/7.
+
+*Escribe el número o el nombre de la opción para continuar.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
