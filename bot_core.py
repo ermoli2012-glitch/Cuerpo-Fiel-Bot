@@ -1,29 +1,32 @@
 import os
 import base64
 import psycopg2
-from flask import Flask, request, jsonify, render_template
-from flask_cors import CORS
 import google.generativeai as genai
+from flask import Flask, request, jsonify, render_template
+# CORRECCIÓN DE LA LÍNEA 5:
+from flask_cors import CORS 
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
-# IMPORTANTE: CORS permite que tu frontend en Netlify se comunique con este servidor en Render
-CORS(app) 
+# ACTIVACIÓN DE CORS: Permite que Netlify envíe fotos a Render
+CORS(app)
 
 # ==========================================
 # 1. CONFIGURACIÓN DE GEMINI
 # ==========================================
-API_KEY = os.environ.get("GEMINI_API_KEY")
+API_KEY = os.environ.get("GEMINI_API_KEY") 
+model = None
 
 try:
     if not API_KEY:
-        print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
-    
+        print("⚠️ Advertencia: Clave de Gemini no encontrada.")
     genai.configure(api_key=API_KEY)
-    # Usamos gemini-1.5-flash: es el modelo que soporta visión (imágenes) y es muy rápido
+    # Usamos 1.5 Flash para asegurar soporte de imágenes
     model = genai.GenerativeModel('gemini-1.5-flash') 
 except Exception as e:
-    print(f"❌ Error al configurar Gemini: {e}")
+    print(f"❌ Error Gemini: {e}")
+
+# (Mantén tus funciones obtener_conexion, guardar_historial y consultar_gemini igual)
 
 # --- DATOS DE CONTACTO Y ENLACES ---
 WHATSAPP_CONTACTO_PSICOLOGIA = "proximamente"
@@ -98,28 +101,59 @@ def consultar_gemini(celular, mensaje_usuario):
 # 5. RUTAS DEL SERVIDOR
 # ==========================================
 
+import os
+import base64
+import psycopg2
+import google.generativeai as genai
+from flask import Flask, request, jsonify, render_template
+# CORRECCIÓN DE LA LÍNEA 5:
+from flask_cors import CORS 
+from twilio.twiml.messaging_response import MessagingResponse
+
+app = Flask(__name__)
+# ACTIVACIÓN DE CORS: Permite que Netlify envíe fotos a Render
+CORS(app) 
+
+# ==========================================
+# 1. CONFIGURACIÓN DE GEMINI
+# ==========================================
+API_KEY = os.environ.get("GEMINI_API_KEY") 
+model = None
+
+try:
+    if not API_KEY:
+        print("⚠️ Advertencia: Clave de Gemini no encontrada.")
+    genai.configure(api_key=API_KEY)
+    # Usamos 1.5 Flash para asegurar soporte de imágenes
+    model = genai.GenerativeModel('gemini-1.5-flash') 
+except Exception as e:
+    print(f"❌ Error Gemini: {e}")
+
+# (Mantén tus funciones obtener_conexion, guardar_historial y consultar_gemini igual)
+
+# ==========================================
+# 5. RUTAS DEL SERVIDOR (NOMBRE ÚNICO)
+# ==========================================
+
 @app.route('/')
 def home():
     return render_template('index.html')
 
-# CORRECCIÓN: Nombre de función único para evitar el AssertionError en Render
 @app.route('/analizar_comida', methods=['POST'])
-def endpoint_analizar_comida_visual():
+def analizar_foto_plato(): # Nombre único para evitar AssertionError
     try:
         data = request.get_json()
         image_data = data.get('image')
         if not image_data:
             return jsonify({"error": "No image"}), 400
 
-        # Limpiar el encabezado base64 si el frontend lo envía
         if "base64," in image_data:
             image_data = image_data.split("base64,")[1]
         
         image_bytes = base64.b64decode(image_data)
 
-        prompt = "Analiza esta comida como Médico y Nutricionista de Génesis: identifica alimentos, salud (1-10) y consejo médico breve basado en los 8 remedios naturales."
+        prompt = "Eres Génesis, Médico Nutricionista. Analiza esta comida: identifica alimentos, salud (1-10) y consejo médico breve."
         
-        # Llamada multimodal (texto + imagen)
         response = model.generate_content([
             prompt, 
             {'mime_type': 'image/jpeg', 'data': image_bytes}
@@ -127,26 +161,12 @@ def endpoint_analizar_comida_visual():
         
         return jsonify({"respuesta": response.text})
     except Exception as e:
-        print(f"Error Cámara: {e}")
-        return jsonify({"respuesta": "Génesis no pudo analizar la imagen en este momento."}), 500
+        return jsonify({"respuesta": "Error al procesar la imagen."}), 500
 
 @app.route('/chat', methods=['POST'])
 def chat():
-    celular_raw = request.values.get('From', 'Web User')
-    celular = celular_raw.replace('whatsapp:', '').replace('+', '')
-        
-    mensaje_in = request.values.get('Body', '') or (request.get_json(silent=True) or {}).get('mensaje', '')
-    
-    respuesta = consultar_gemini(celular, mensaje_in)
-    guardar_historial(celular, mensaje_in, respuesta)
-
-    if 'whatsapp' in celular_raw.lower():
-        resp = MessagingResponse()
-        resp.message(respuesta)
-        return str(resp), 200, {'Content-Type': 'application/xml'}
-    
-    return jsonify({"respuesta": respuesta})
+    # Tu lógica de chat original...
+    return jsonify({"respuesta": "Chat activo"})
 
 if __name__ == '__main__':
-    print("🚀 GENESIS ACTIVO")
-    app.run(port=os.environ.get('PORT', 5000), debug=True)
+    app.run(port=os.environ.get('PORT', 5000))
