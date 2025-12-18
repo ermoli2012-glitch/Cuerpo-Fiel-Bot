@@ -7,7 +7,8 @@ import google.generativeai as genai
 from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
-CORS(app)  # Permite conexiones desde Netlify
+# IMPORTANTE: CORS permite que tu frontend en Netlify se comunique con este servidor en Render
+CORS(app) 
 
 # ==========================================
 # 1. CONFIGURACIÓN DE GEMINI
@@ -19,7 +20,7 @@ try:
         print("⚠️ Advertencia: Clave de Gemini no encontrada en el entorno.")
     
     genai.configure(api_key=API_KEY)
-    # Usamos gemini-1.5-flash para soporte de imágenes y velocidad
+    # Usamos gemini-1.5-flash: es el modelo que soporta visión (imágenes) y es muy rápido
     model = genai.GenerativeModel('gemini-1.5-flash') 
 except Exception as e:
     print(f"❌ Error al configurar Gemini: {e}")
@@ -101,21 +102,24 @@ def consultar_gemini(celular, mensaje_usuario):
 def home():
     return render_template('index.html')
 
+# CORRECCIÓN: Nombre de función único para evitar el AssertionError en Render
 @app.route('/analizar_comida', methods=['POST'])
-def analizar_comida_visual():
+def endpoint_analizar_comida_visual():
     try:
         data = request.get_json()
         image_data = data.get('image')
         if not image_data:
             return jsonify({"error": "No image"}), 400
 
+        # Limpiar el encabezado base64 si el frontend lo envía
         if "base64," in image_data:
             image_data = image_data.split("base64,")[1]
         
         image_bytes = base64.b64decode(image_data)
 
-        prompt = "Analiza esta comida como Médico y Nutricionista: identifica alimentos, salud (1-10) y consejo médico breve."
+        prompt = "Analiza esta comida como Médico y Nutricionista de Génesis: identifica alimentos, salud (1-10) y consejo médico breve basado en los 8 remedios naturales."
         
+        # Llamada multimodal (texto + imagen)
         response = model.generate_content([
             prompt, 
             {'mime_type': 'image/jpeg', 'data': image_bytes}
@@ -124,7 +128,7 @@ def analizar_comida_visual():
         return jsonify({"respuesta": response.text})
     except Exception as e:
         print(f"Error Cámara: {e}")
-        return jsonify({"respuesta": "Error al procesar la imagen."}), 500
+        return jsonify({"respuesta": "Génesis no pudo analizar la imagen en este momento."}), 500
 
 @app.route('/chat', methods=['POST'])
 def chat():
