@@ -1,10 +1,48 @@
 import os
+import base64
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
-from twilio.twiml.messaging_response import MessagingResponse
+from flask_cors import CORS # Importante para permitir conexión desde Netlify
 
 app = Flask(__name__)
+CORS(app) # Esto permite que Netlify pueda enviar la foto a Render sin bloqueos
+
+# Configuración de Gemini
+API_KEY = os.environ.get("GEMINI_API_KEY") 
+genai.configure(api_key=API_KEY)
+model = genai.GenerativeModel('gemini-1.5-flash') 
+
+@app.route('/')
+def home():
+    return render_template('index.html')
+
+# RUTA DE CÁMARA CORREGIDA (Sin duplicidad de nombres)
+@app.route('/analizar_comida', methods=['POST'])
+def procesar_analisis_visual():
+    try:
+        data = request.get_json()
+        image_data = data.get('image')
+        if not image_data:
+            return jsonify({"error": "No hay imagen"}), 400
+
+        if "base64," in image_data:
+            image_data = image_data.split("base64,")[1]
+        image_bytes = base64.b64decode(image_data)
+
+        prompt = "Eres Génesis, Médico y Nutricionista. Analiza esta comida: identifica alimentos, salud (1-10) y consejo médico breve."
+        
+        response = model.generate_content([
+            prompt,
+            {'mime_type': 'image/jpeg', 'data': image_bytes}
+        ])
+        return jsonify({"respuesta": response.text})
+    except Exception as e:
+        print(f"Error en servidor: {e}")
+        return jsonify({"respuesta": "Génesis tuvo un problema técnico."}), 500
+
+if __name__ == '__main__':
+    app.run(port=os.environ.get('PORT', 5000))
 
 # ==========================================
 # 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
