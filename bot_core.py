@@ -17,33 +17,6 @@ CORS(app)  # <-- 2. Habilitar CORS en la aplicación
 
 # ... (Mantén tu configuración de API_KEY y DB igual)
 
-# ==========================================
-# 2. MENÚ DE SERVICIOS (CORREGIDO)
-# ==========================================
-# Se usa una sola asignación con triples comillas para evitar el SyntaxError
-MENU_SERVICIOS = """
-✨ *CENTRO DE BIENESTAR GÉNESIS* ✨
-*Tu camino a la restauración integral*
-
-Selecciona una de nuestras áreas especializadas:
-
-🏥 **ÁREA CLÍNICA**
-1️⃣ *Consulta:* Síntomas y tratamientos naturales.
-6️⃣ *HTA:* Protocolo de Presión Arterial.
-7️⃣ *Diabetes:* Control de azúcar.
-8️⃣ *Corazón:* Salud Cardiovascular.
-
-🌱 **ESTILO DE VIDA (8 REMEDIOS)**
-0️⃣ *Evaluación:* Test rápido de vitalidad.
-5️⃣ *Reto Poder 8:* Entrenamiento inteligente.
-
-🙏 **APOYO Y COMUNIDAD**
-2️⃣ *Psicología:* Estrés y Ansiedad.
-3️⃣ *Iglesias:* Encuentra tu comunidad.
-4️⃣ *Radio:* Inspiración 24/7.
-
-*Responde solo con el número de la opción.*
-"""
 # 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
 # ==========================================
 API_KEY = os.environ.get("GEMINI_API_KEY") 
@@ -68,50 +41,50 @@ DIRECTORIO_IGLESIAS_LINK = "https://asoatlantico.org.co/es/distritos"
 # 2. INSTRUCCIÓN MAESTRA (ROL: MÉDICO INTERNISTA Y NUTRICIONISTA)
 # =========================================================================
 INSTRUCCION_SISTEMA = """
-ROL INTERNO: Eres Genesis, con la autoridad profesional de un **Médico Especialista en Medicina Interna y Nutricionista Clínico**. Tu rol visible al usuario es **Tu Guía Saludable** del Ministerio de Salud Adventista del distrito Redencion. Tu estilo debe ser **100% HUMANO, empático, profesional, práctico y cálido**.
+ROL: Eres Génesis, exclusivamente *Tu Guía Saludable* del Ministerio de Salud Adventista.
+OBJETIVO: Ayudar al usuario a ponerse en óptimas condiciones físicas y espirituales mediante los 8 Remedios Naturales.
 
-REGLAS DE PROCESAMIENTO (INTERNAS - NUNCA VISIBLES AL USUARIO):
-1. **ANÁLISIS DE ESPECIALISTA:** Utiliza tu conocimiento de Medicina Interna y Nutrición para hacer un diagnóstico presuntivo y formular la recomendación clínica más avanzada.
-2. **PRIORIDAD MÁXIMA:** La conversación debe fluir de forma natural. Omite cualquier texto que suene a "Regla", "Análisis Interno", o títulos de especialidad.
-3. ESTÁNDAR TERAPÉUTICO: La prescripción se basa en el **estilo de vida más saludable basado en plantas** (con estricta recomendación de **restringir carnes, azúcar refinado y bebidas cafeinadas**) y los **8 Remedios Naturales**.
-
-REGLAS DE RESPUESTA VISIBLE AL USUARIO:
-1. **RESPUESTA DIRECTA Y NATURAL (TERAPÉUTICA):** Ve directo al **diagnóstico presuntivo** (sin ser extenso) y a la **prescripción de UN SOLO REMEDIO NATURAL** que sea más relevante. La prescripción debe ser una **RECETA** que detalle los procedimientos y pasos de acción exitosos.
-2. Contexto de Fe: Toda prescripción debe estar alineada con los principios bíblicos de salud.
-3. Versículo Bíblico: **La cita bíblica debe ser ALTAMENTE RELEVANTE** al tema consultado.
-4. Formato: Usa negritas, saltos de línea y emojis.
-5. **Cierre Interactivo:** Finaliza con la pregunta interactiva: *'¿Te gustaría saber más (SI/NO) sobre este Remedio Natural o los otros 7 pilares de salud?'*
-6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
+REGLAS DE ORO:
+1. PROHIBIDO: No uses términos como "diagnóstico presuntivo", "médico internista", "paciente" o "clínico".
+2. ESTILO: Sé cálido, empático y práctico. Habla como un mentor de bienestar, no como un doctor.
+3. EL MÉTODO: Basa toda recomendación en el Estilo de Vida Saludable (Plant-based) y los 8 Remedios Naturales (Agua, Descanso, Ejercicio, Luz Solar, Aire, Nutrición, Templanza y Esperanza).
+4. ESTRUCTURA DE RESPUESTA:
+   - Saludo cálido.
+   - Consejo práctico basado en uno de los 8 remedios.
+   - Una receta natural (paso a paso) para aplicar el consejo.
+   - Un versículo bíblico inspirador y relevante.
+   - Cierre: Sugerencia de consultar a su profesional de salud de confianza. 🙏
+   - Pregunta interactiva: '¿Te gustaría saber más sobre este pilar o conocer los otros 7?'
 """
 
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
 # ==========================================
-# 2. MENÚ DE SERVICIOS
+# 2. MENÚ DE SERVICIOS (COMPLETO)
 # ==========================================
 MENU_SERVICIOS = """
 ✨ *CENTRO DE BIENESTAR GÉNESIS* ✨
 *Tu camino a la restauración integral*
 
-Selecciona una de nuestras áreas especializadas:
+Selecciona una opción para empezar:
 
-🏥 **ÁREA CLÍNICA**
-1️⃣ *Consulta:* Síntomas y tratamientos naturales.
-6️⃣ *HTA:* Protocolo de Presión Arterial.
-7️⃣ *Diabetes:* Control de azúcar.
-8️⃣ *Corazón:* Salud Cardiovascular.
+🌱 *OPTIMIZACIÓN FÍSICA*
+0️⃣ **EVALUACIÓN:** Test rápido de vitalidad.
+1️⃣ **GUÍA SALUDABLE:** Consulta sobre hábitos y remedios.
+5️⃣ **RETO PODER 8:** Tu plan de entrenamiento.
 
-🌱 **ESTILO DE VIDA (8 REMEDIOS)**
-0️⃣ *Evaluación:* Test rápido de vitalidad.
-5️⃣ *Reto Poder 8:* Entrenamiento inteligente.
+🍎 *PROTOCOLOS DE VIDA*
+6️⃣ **PRESIÓN:** Guía para tensión saludable.
+7️⃣ **AZÚCAR:** Optimización del metabolismo.
+8️⃣ **CORAZÓN:** Cuidado cardiovascular natural.
 
-🙏 **APOYO Y COMUNIDAD**
-2️⃣ *Psicología:* Estrés y Ansiedad.
-3️⃣ *Iglesias:* Encuentra tu comunidad.
-4️⃣ *Radio:* Inspiración 24/7.
+🙏 *APOYO Y COMUNIDAD*
+2️⃣ **BIENESTAR:** Apoyo emocional y paz mental.
+3️⃣ **ENCUENTRO:** Ubica tu centro de vida sana.
+4️⃣ **ESPERANZA:** Radio AWR Inspiración 24/7.
 
-*Responde solo con el número de la opción.*
+*Escribe solo el número o di HOLA para volver aquí.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
