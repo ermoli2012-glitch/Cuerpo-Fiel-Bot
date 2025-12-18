@@ -415,46 +415,45 @@ def chat():
     else:
         return jsonify({"respuesta": respuesta})
 
-if __name__ == '__main__':
-    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
-    app.run(port=os.environ.get('PORT', 5000), debug=True)
-
 # ==========================================
-# NUEVA FUNCIÓN: ANÁLISIS DE COMIDA POR FOTO
+# NUEVA RUTA: ANÁLISIS VISUAL DE COMIDA
 # ==========================================
 @app.route('/analizar_comida', methods=['POST'])
 def analizar_comida():
     try:
         data = request.get_json()
-        image_data = data.get('image') # Aquí llega la foto del celular
+        image_data = data.get('image')
         
         if not image_data:
-            return jsonify({"error": "No hay imagen"}), 400
+            return jsonify({"error": "No se recibió imagen"}), 400
 
-        # Convertimos el formato de la foto para que Gemini lo entienda
+        # Limpiar el formato base64
         if "base64," in image_data:
             image_data = image_data.split("base64,")[1]
         image_bytes = base64.b64decode(image_data)
 
-        # Instrucción especial para la foto
+        # Instrucción para que Génesis analice la foto
         prompt_foto = """
-        Eres Génesis, Médico Internista y Nutricionista. 
+        Actúa como Génesis (Médico Internista y Nutricionista). 
         Analiza esta imagen de comida:
-        1. ¿Qué alimentos ves?
-        2. Califica qué tan saludable es del 1 al 10.
-        3. Da una recomendación médica breve (ej: 'Excelente equilibrio' o 'Cuidado con las harinas').
-        Responde de forma profesional y motivadora.
+        1. Identifica qué alimentos hay.
+        2. Califica qué tan saludable es (1-10) según los 8 remedios naturales.
+        3. Da una recomendación médica breve y profesional.
+        Sé directo y empático.
         """
 
-        # Le pedimos a Gemini que "vea" la imagen
-        contenido = [
+        # Llamada multimodal a Gemini
+        response = model.generate_content([
             prompt_foto,
             {'mime_type': 'image/jpeg', 'data': image_bytes}
-        ]
-        
-        response = model.generate_content(contenido)
-        return jsonify({"respuesta": response.text})
+        ])
+
+        return jsonify({"respuesta": response.text.replace('**', '*').replace('__', '_')})
 
     except Exception as e:
         print(f"❌ Error visual: {e}")
-        return jsonify({"respuesta": "Génesis tuvo un problema al ver la foto. Intenta de nuevo."}), 500
+        return jsonify({"respuesta": "Génesis no pudo ver bien la foto. Intenta de nuevo."}), 500
+
+if __name__ == '__main__':
+    print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
+    app.run(port=os.environ.get('PORT', 5000), debug=True)
