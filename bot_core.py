@@ -1,5 +1,4 @@
 import os
-import base64
 import psycopg2
 import google.generativeai as genai
 from flask import Flask, request, jsonify, render_template
@@ -47,44 +46,7 @@ REGLAS DE RESPUESTA VISIBLE AL USUARIO:
 5. **Cierre Interactivo:** Finaliza con la pregunta interactiva: *'¿Te gustaría saber más (SI/NO) sobre este Remedio Natural o los otros 7 pilares de salud?'*
 6. Referencia Médica: En CADA respuesta, refuerza la necesidad de consultar al médico personal ("Le recomendamos consultar a su médico tratante para un diagnóstico completo. 🙏").
 """
-# ==========================================
-# NUEVA RUTA: ANÁLISIS VISUAL DE COMIDA
-# ==========================================
-@app.route('/analizar_comida', methods=['POST'])
-def analizar_comida():
-    try:
-        data = request.get_json()
-        image_data = data.get('image')
-        
-        if not image_data:
-            return jsonify({"error": "No se recibió imagen"}), 400
 
-        # Limpiar el formato base64 para convertirlo en bytes
-        if "base64," in image_data:
-            image_data = image_data.split("base64,")[1]
-        image_bytes = base64.b64decode(image_data)
-
-        # Instrucción médica visual
-        prompt_foto = """
-        Eres Génesis, Médico Internista y Nutricionista. 
-        Analiza esta imagen:
-        1. Identifica los alimentos presentes.
-        2. Califica del 1 al 10 qué tan saludable es según los 8 remedios naturales.
-        3. Da un consejo médico breve, mencionando beneficios o riesgos.
-        Sé profesional, cálido y directo.
-        """
-
-        # Generar contenido usando el modelo multimodal
-        response = model.generate_content([
-            prompt_foto,
-            {'mime_type': 'image/jpeg', 'data': image_bytes}
-        ])
-
-        return jsonify({"respuesta": response.text.replace('**', '*').replace('__', '_')})
-
-    except Exception as e:
-        print(f"❌ Error en cámara: {e}")
-        return jsonify({"respuesta": "Génesis tuvo un problema al ver la foto. Intenta de nuevo."}), 500
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
@@ -421,8 +383,23 @@ Este es un módulo de entrenamiento innovador que equilibra los *8 Remedios Natu
 ⚠️ Lo siento, Genesis está en una consulta crítica.
 Intenta de nuevo en un momento."
 """
+# LÍNEA ~250: INSERTAR ANTES DE @app.route('/')
+@app.route('/analizar_comida', methods=['POST'])
+def analizar_comida_visual():
+    try:
+        data = request.get_json()
+        image_data = data.get('image')
+        if not image_data: return jsonify({"error": "No image"}), 400
 
+        if "base64," in image_data:
+            image_data = image_data.split("base64,")[1]
+        image_bytes = base64.b64decode(image_data)
 
+        prompt = "Analiza esta comida como Médico y Nutricionista: identifica alimentos, salud (1-10) y consejo médico."
+        response = model.generate_content([prompt, {'mime_type': 'image/jpeg', 'data': image_bytes}])
+        return jsonify({"respuesta": response.text})
+    except Exception as e:
+        return jsonify({"respuesta": "Error al procesar imagen."}), 500
 # ==========================================
 # 9. RUTAS WEB Y DE WHATSAPP (Sin cambios)
 # ==========================================
@@ -451,45 +428,6 @@ def chat():
         return str(resp), 200, {'Content-Type': 'application/xml'}
     else:
         return jsonify({"respuesta": respuesta})
-
-# ==========================================
-# NUEVA RUTA: ANÁLISIS VISUAL DE COMIDA
-# ==========================================
-@app.route('/analizar_comida', methods=['POST'])
-def analizar_comida():
-    try:
-        data = request.get_json()
-        image_data = data.get('image')
-        
-        if not image_data:
-            return jsonify({"error": "No se recibió imagen"}), 400
-
-        # Limpiar el formato base64
-        if "base64," in image_data:
-            image_data = image_data.split("base64,")[1]
-        image_bytes = base64.b64decode(image_data)
-
-        # Instrucción para que Génesis analice la foto
-        prompt_foto = """
-        Actúa como Génesis (Médico Internista y Nutricionista). 
-        Analiza esta imagen de comida:
-        1. Identifica qué alimentos hay.
-        2. Califica qué tan saludable es (1-10) según los 8 remedios naturales.
-        3. Da una recomendación médica breve y profesional.
-        Sé directo y empático.
-        """
-
-        # Llamada multimodal a Gemini
-        response = model.generate_content([
-            prompt_foto,
-            {'mime_type': 'image/jpeg', 'data': image_bytes}
-        ])
-
-        return jsonify({"respuesta": response.text.replace('**', '*').replace('__', '_')})
-
-    except Exception as e:
-        print(f"❌ Error visual: {e}")
-        return jsonify({"respuesta": "Génesis no pudo ver bien la foto. Intenta de nuevo."}), 500
 
 if __name__ == '__main__':
     print("🚀 GENESIS (FLUJO DIRECTO Y EFICIENTE) - ACTIVO")
