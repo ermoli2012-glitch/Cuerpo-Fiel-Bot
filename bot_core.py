@@ -60,7 +60,11 @@ MENU_SERVICIOS = f"""
 ----------------------------------------
 * Selecciona una opción para empezar:*
 ----------------------------------------
-# Nueva estructura de menú más clara y profesional
+# =========================================================================
+# 2. INSTRUCCIÓN MAESTRA Y MENÚS
+# =========================================================================
+
+# Asegúrate de usar las tres comillas al principio y al final
 MENU_SERVICIOS = """
 ✨ *CENTRO DE BIENESTAR GÉNESIS* ✨
 *Tu camino a la restauración integral*
@@ -82,7 +86,7 @@ Selecciona una de nuestras áreas especializadas:
 3️⃣ *Iglesias:* Encuentra tu comunidad.
 4️⃣ *Radio:* Inspiración 24/7.
 
-*Escribe el número o el nombre de la opción para continuar.*
+*Responde con el número de la opción.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
