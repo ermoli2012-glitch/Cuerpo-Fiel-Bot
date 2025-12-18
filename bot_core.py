@@ -50,18 +50,9 @@ REGLAS DE RESPUESTA VISIBLE AL USUARIO:
 # --- LISTA DE PALABRAS CLAVE DE EMERGENCIA (Para el Triage) ---
 EMERGENCY_KEYWORDS = ["INFARTO", "SANGRADO PROFUSO", "PÉRDIDA DE CONCIENCIA", "DOLOR INTENSO DE PECHO", "HEMORRAGIA", "PARO CARDÍACO", "AMBULANCIA", "911", "ACCIDENTE GRAVE", "VENENO", "ASFIXIA", "PEOR DOLOR DE MI VIDA"]
 
-# --- MENÚ DE SERVICIOS (Texto para la activación con "hola" o "menu") ---
-MENU_SERVICIOS = f"""
-⭐ *¡HOLA! SOY GENESIS* ⭐
-*Tu guía saludable del Distrito Redención Barranquilla.*
-
-🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
-
-# =========================================================================
-# 2. INSTRUCCIÓN MAESTRA Y MENÚS
-# =========================================================================
-
-# Asegúrate de usar las tres comillas al principio y al final
+# ==========================================
+# 2. MENÚ DE SERVICIOS
+# ==========================================
 MENU_SERVICIOS = """
 ✨ *CENTRO DE BIENESTAR GÉNESIS* ✨
 *Tu camino a la restauración integral*
@@ -83,7 +74,7 @@ Selecciona una de nuestras áreas especializadas:
 3️⃣ *Iglesias:* Encuentra tu comunidad.
 4️⃣ *Radio:* Inspiración 24/7.
 
-*Responde con el número de la opción.*
+*Responde solo con el número de la opción.*
 """
 # ==========================================
 # 3. BASE DE DATOS Y MEMORIA 
