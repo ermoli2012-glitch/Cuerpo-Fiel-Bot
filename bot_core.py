@@ -57,9 +57,6 @@ MENU_SERVICIOS = f"""
 
 🤝 Estoy aquí para ayudarte a transformar tu vida con el **Estilo de Vida más Saludable**.
 
-----------------------------------------
-* Selecciona una opción para empezar:*
-----------------------------------------
 # =========================================================================
 # 2. INSTRUCCIÓN MAESTRA Y MENÚS
 # =========================================================================
