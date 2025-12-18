@@ -6,7 +6,44 @@ from twilio.twiml.messaging_response import MessagingResponse
 
 app = Flask(__name__)
 
+# ==========================================from flask import Flask, request, jsonify, render_template
+from flask_cors import CORS  # <-- 1. Importar CORS para permitir la conexión desde Netlify
+import os
+import psycopg2
+import google.generativeai as genai
+
+app = Flask(__name__)
+CORS(app)  # <-- 2. Habilitar CORS en la aplicación
+
+# ... (Mantén tu configuración de API_KEY y DB igual)
+
 # ==========================================
+# 2. MENÚ DE SERVICIOS (CORREGIDO)
+# ==========================================
+# Se usa una sola asignación con triples comillas para evitar el SyntaxError
+MENU_SERVICIOS = """
+✨ *CENTRO DE BIENESTAR GÉNESIS* ✨
+*Tu camino a la restauración integral*
+
+Selecciona una de nuestras áreas especializadas:
+
+🏥 **ÁREA CLÍNICA**
+1️⃣ *Consulta:* Síntomas y tratamientos naturales.
+6️⃣ *HTA:* Protocolo de Presión Arterial.
+7️⃣ *Diabetes:* Control de azúcar.
+8️⃣ *Corazón:* Salud Cardiovascular.
+
+🌱 **ESTILO DE VIDA (8 REMEDIOS)**
+0️⃣ *Evaluación:* Test rápido de vitalidad.
+5️⃣ *Reto Poder 8:* Entrenamiento inteligente.
+
+🙏 **APOYO Y COMUNIDAD**
+2️⃣ *Psicología:* Estrés y Ansiedad.
+3️⃣ *Iglesias:* Encuentra tu comunidad.
+4️⃣ *Radio:* Inspiración 24/7.
+
+*Responde solo con el número de la opción.*
+"""
 # 1. CONFIGURACIÓN DE GEMINI (CEREBRO)
 # ==========================================
 API_KEY = os.environ.get("GEMINI_API_KEY") 
